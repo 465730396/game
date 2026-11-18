@@ -1,0 +1,8 @@
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20rpx 0; border-bottom: 1rpx solid rgba(232,197,122,0.1);
+}
+.setting-row:last-child { border-bottom: none; }
+.setting-name { font-size: 28rpx; color: var(--ink); }
+.setting-desc { font-size: 22rpx; color: var(--gold-dim); margin-top: 6rpx; }
+.rule-p { font-size: 26rpx; line-height: 1.8; color: var(--ink); }

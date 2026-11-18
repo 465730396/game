@@ -1,0 +1,23 @@
+<view class="page">
+  <view class="panel">
+    <view class="panel-title">基本信息</view>
+    <view class="rule-p">2/3 人局用 48 张牌（去掉大小王、3 张 2、1 张 A），3 人每人 16 张、2 人每人 24 张；4 人局用 52 张，每人 13 张。持红桃 3 者先出，首手必须包含红桃 3。</view>
+  </view>
+  <view class="panel">
+    <view class="panel-title">牌型</view>
+    <view class="rule-grid">
+      <view wx:for="{{ruleTypes}}" wx:key="name" class="rule-item">
+        <view class="rule-name">{{item.name}}</view>
+        <view class="rule-desc">{{item.desc}}</view>
+      </view>
+    </view>
+  </view>
+  <view class="panel">
+    <view class="panel-title">强制规则</view>
+    <view class="rule-p">见单 K 必出 A · 见对 K 必出对 A · 见 A 必出 2 · 见 2 必出炸弹。无牌可压且规则允许时可不出；已落地的牌不可收回；剩 3 张以内自动报牌。</view>
+  </view>
+  <view class="panel">
+    <view class="panel-title">计分（娱乐积分）</view>
+    <view class="rule-p">胜者得其他玩家剩余张数之和 ×1；四张炸弹额外 +2，天炸（AAA，4 人局含 AAAA）额外 +5，其余玩家各扣对应分。逃跑只记次数不计分。积分仅作娱乐记录，不兑换任何物品。</view>
+  </view>
+</view>

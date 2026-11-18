@@ -1,0 +1,23 @@
+{
+  "description": "陕北捉老麻 - 微信小程序（H5 试玩版归档在 h5/）",
+  "miniprogramRoot": "./",
+  "packOptions": {
+    "ignore": [
+      { "type": "folder", "value": "h5" },
+      { "type": "folder", "value": "tools" }
+    ]
+  },
+  "setting": {
+    "urlCheck": false,
+    "es6": false,
+    "enhance": false,
+    "postcss": false,
+    "minified": false,
+    "bigPackageSizeSupport": true
+  },
+  "compileType": "miniprogram",
+  "libVersion": "3.5.0",
+  "appid": "touristappid",
+  "projectname": "shengbei-laomazi",
+  "condition": {}
+}

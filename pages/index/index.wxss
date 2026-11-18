@@ -1,0 +1,17 @@
+.index-page { padding-top: 40rpx; }
+.hero { text-align: center; margin-bottom: 40rpx; }
+.hero-title { font-size: 56rpx; font-weight: 500; color: var(--gold); letter-spacing: 6rpx; }
+.hero-sub { font-size: 26rpx; color: var(--gold-dim); margin-top: 12rpx; letter-spacing: 4rpx; }
+.btn-row { display: flex; gap: 20rpx; margin-top: 20rpx; }
+.btn-row .btn { flex: 1; }
+.start-btn { margin-top: 32rpx; }
+.nav-grid { display: flex; gap: 16rpx; }
+.nav-item {
+  flex: 1; background: var(--bg-panel); border: 1rpx solid rgba(232,197,122,0.18);
+  border-radius: 16rpx; text-align: center; padding: 28rpx 0;
+}
+.nav-icon {
+  width: 72rpx; height: 72rpx; line-height: 72rpx; margin: 0 auto 12rpx;
+  border-radius: 50%; border: 2rpx solid var(--gold-dim); color: var(--gold); font-size: 34rpx;
+}
+.nav-label { font-size: 24rpx; color: var(--ink); }

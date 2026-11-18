@@ -1,0 +1,37 @@
+<view class="page">
+  <view class="panel">
+    <view class="panel-title">音效与提示</view>
+    <view class="setting-row">
+      <view class="setting-info">
+        <view class="setting-name">背景音乐</view>
+        <view class="setting-desc">程序合成旋律，循环播放</view>
+      </view>
+      <switch checked="{{bgm}}" color="#E8C57A" bindchange="onBgm" />
+    </view>
+    <view class="setting-row">
+      <view class="setting-info">
+        <view class="setting-name">语音提示</view>
+        <view class="setting-desc">出牌、轮次、炸弹音效</view>
+      </view>
+      <switch checked="{{dialect}}" color="#E8C57A" bindchange="onDialect" />
+    </view>
+    <view class="setting-row">
+      <view class="setting-info">
+        <view class="setting-name">大字模式</view>
+        <view class="setting-desc">放大牌面与规则文字</view>
+      </view>
+      <switch checked="{{largeFont}}" color="#E8C57A" bindchange="onFont" />
+    </view>
+    <view class="setting-row">
+      <view class="setting-info">
+        <view class="setting-name">振动反馈</view>
+        <view class="setting-desc">出牌与炸弹时振动</view>
+      </view>
+      <switch checked="{{vibration}}" color="#E8C57A" bindchange="onVibration" />
+    </view>
+  </view>
+  <view class="panel">
+    <view class="panel-title">关于</view>
+    <view class="rule-p">陕北捉老麻 · 娱乐牌局。积分仅作本地娱乐记录，不涉及任何真实货币或物品兑换。</view>
+  </view>
+</view>

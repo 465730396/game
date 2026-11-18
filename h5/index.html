@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>陕北捉老麻 · 窑洞夜宴</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="fx-canvas" aria-hidden="true"></canvas>
+  <div class="screen-vignette" aria-hidden="true"></div>
+
+  <svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+    <symbol id="cut-flower" viewBox="0 0 100 100">
+      <g fill="currentColor">
+        <path id="petal" d="M50 5 C42 23 42 36 50 46 C58 36 58 24 50 5 Z"/>
+        <use href="#petal" transform="rotate(45 50 50)"/>
+        <use href="#petal" transform="rotate(90 50 50)"/>
+        <use href="#petal" transform="rotate(135 50 50)"/>
+        <use href="#petal" transform="rotate(180 50 50)"/>
+        <use href="#petal" transform="rotate(225 50 50)"/>
+        <use href="#petal" transform="rotate(270 50 50)"/>
+        <use href="#petal" transform="rotate(315 50 50)"/>
+      </g>
+      <circle cx="50" cy="50" r="17" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="50" cy="50" r="8" fill="currentColor"/>
+      <circle cx="50" cy="50" r="3.5" fill="#2A120E"/>
+    </symbol>
+    <symbol id="drum" viewBox="0 0 100 100">
+      <path d="M33 32 L67 32 L74 68 Q50 78 26 68 Z" fill="currentColor" opacity=".85"/>
+      <ellipse cx="33" cy="32" rx="8" ry="5" fill="#FFE0A0"/>
+      <ellipse cx="67" cy="32" rx="8" ry="5" fill="#FFE0A0"/>
+      <path d="M20 24 L34 30 M80 24 L66 30" stroke="#FFE0A0" stroke-width="4" stroke-linecap="round"/>
+      <path d="M26 68 L18 82 M74 68 L82 82" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+    </symbol>
+  </svg>
+
+  <div class="app-shell">
+
+    <!-- ===== 主菜单 ===== -->
+    <section id="screen-home" class="screen active">
+      <header class="hero">
+        <div class="hero-sweep" aria-hidden="true"></div>
+        <svg class="hero-cut cut-left" viewBox="0 0 100 100" aria-hidden="true"><use href="#cut-flower"/></svg>
+        <svg class="hero-cut cut-right" viewBox="0 0 100 100" aria-hidden="true"><use href="#cut-flower"/></svg>
+        <div class="hero-content">
+          <div class="eyebrow">◆ &nbsp; 窑 洞 炕 头 的 一 把 牌 &nbsp; ◆</div>
+          <h1 class="title">陕北捉老麻</h1>
+          <div class="subtitle">黄土坡上 · 信天游里 · 纯娱乐试玩</div>
+        </div>
+        <div class="folk-strip">
+          <span><svg viewBox="0 0 100 100"><use href="#cut-flower"/></svg>剪纸</span>
+          <i></i>
+          <span><svg viewBox="0 0 100 100"><use href="#drum"/></svg>腰鼓</span>
+          <i></i>
+          <span>♫ 信天游</span>
+        </div>
+      </header>
+
+      <div class="disclaimer">纯娱乐 · 无充值 · 无提现 · 无真实货币兑换 · 积分仅为娱乐记录</div>
+
+      <div class="panel panel-feature">
+        <div class="corner-flower" aria-hidden="true"><svg viewBox="0 0 100 100"><use href="#cut-flower"/></svg></div>
+        <div class="panel-title">人机对战 <small>AI 三档 · 不作弊</small></div>
+        <div class="row-label">人数</div>
+        <div class="segmented" id="home-ai-count">
+          <button data-value="2">2 人</button>
+          <button data-value="3" class="on">3 人</button>
+          <button data-value="4">4 人</button>
+        </div>
+        <div class="row-label">难度</div>
+        <div class="segmented" id="home-ai-level">
+          <button data-value="EASY">简单</button>
+          <button data-value="NORMAL" class="on">普通</button>
+          <button data-value="HARD">困难</button>
+        </div>
+        <button class="btn btn-primary btn-block pulse" id="btn-start-ai">开 始 对 战 <span>›</span></button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">同屏热座 <small>一台设备轮流玩</small></div>
+        <p class="panel-desc">换手前自动遮挡手牌，适合一家人炕头上轮着来</p>
+        <div class="segmented" id="home-hot-count">
+          <button data-value="2">2 人</button>
+          <button data-value="3" class="on">3 人</button>
+          <button data-value="4">4 人</button>
+        </div>
+        <button class="btn btn-block" id="btn-start-hot">开 始 热 座</button>
+      </div>
+
+      <div class="link-row">
+        <button class="link-btn" data-go="rules"><span class="link-icon">❖</span>玩法规则</button>
+        <button class="link-btn" data-go="stats"><span class="link-icon">✦</span>战绩榜</button>
+        <button class="link-btn" data-go="settings"><span class="link-icon">⚙</span>设置</button>
+      </div>
+      <div class="foot-note">规则集 v1 · 试玩版 0.1.0 · 本地战绩保存在本机浏览器</div>
+    </section>
+
+    <!-- ===== 对局 ===== -->
+    <section id="screen-game" class="screen">
+      <header class="game-head">
+        <button class="icon-btn" id="btn-quit">‹ 返回</button>
+        <div class="head-meta">
+          <div class="head-title">陕北捉老麻</div>
+          <div class="head-sub" id="game-meta">3 人 · 普通</div>
+        </div>
+        <button class="icon-btn" id="btn-restart">重开</button>
+      </header>
+
+      <div class="board-wrap">
+        <canvas id="board"></canvas>
+        <div class="board-overlay">
+          <div class="seat-row" id="seat-row"></div>
+          <div class="play-zone">
+            <div class="play-label" id="play-label">新一轮 · 自由出牌</div>
+            <div class="play-cards" id="play-cards"></div>
+          </div>
+          <div class="status-line" id="status-line">准备发牌</div>
+          <div class="force-line" id="force-line"></div>
+        </div>
+      </div>
+
+      <div class="hand-zone">
+        <div class="hand-title" id="hand-title">我的手牌</div>
+        <div class="hand" id="hand"></div>
+      </div>
+
+      <div class="controls">
+        <button class="btn" id="btn-hint">✦ 提示</button>
+        <button class="btn" id="btn-pass">不出</button>
+        <button class="btn btn-primary" id="btn-play">出 牌 ›</button>
+      </div>
+
+      <div class="mask" id="handoff-mask">
+        <div class="mask-card">
+          <svg class="mask-cut" viewBox="0 0 100 100" aria-hidden="true"><use href="#cut-flower"/></svg>
+          <div class="mask-title">请交接设备</div>
+          <div class="mask-name" id="handoff-name">玩家 2</div>
+          <p class="mask-desc">下一位玩家请确认周围无人看到屏幕后再继续</p>
+          <button class="btn btn-primary btn-block" id="btn-handoff">我已准备好</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 结算 ===== -->
+    <section id="screen-result" class="screen">
+      <div class="result-hero">
+        <div class="result-rays" aria-hidden="true"></div>
+        <div class="result-badge" id="result-badge">胜</div>
+        <h2 id="result-title">本局结束</h2>
+        <div class="result-sub" id="result-sub"></div>
+      </div>
+      <div class="panel" id="result-scores"></div>
+      <div class="btn-row">
+        <button class="btn" id="btn-result-home">返回主菜单</button>
+        <button class="btn btn-primary" id="btn-again">再来一局</button>
+      </div>
+    </section>
+
+    <!-- ===== 战绩 ===== -->
+    <section id="screen-stats" class="screen">
+      <header class="simple-head">
+        <button class="icon-btn" data-go="home">‹ 返回</button>
+        <div class="head-title">战绩榜</div>
+        <span></span>
+      </header>
+      <div class="panel">
+        <div class="panel-title">本机统计</div>
+        <div class="stat-grid" id="stat-grid"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">娱乐积分榜</div>
+        <div id="leaderboard"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">最近对局</div>
+        <div id="recent-records"></div>
+      </div>
+      <button class="btn btn-block btn-ghost" id="btn-clear-records">清空本机战绩</button>
+    </section>
+
+    <!-- ===== 规则 ===== -->
+    <section id="screen-rules" class="screen">
+      <header class="simple-head">
+        <button class="icon-btn" data-go="home">‹ 返回</button>
+        <div class="head-title">玩法规则</div>
+        <span></span>
+      </header>
+      <div class="panel">
+        <div class="panel-title">基本信息</div>
+        <p class="rule-p">3 人局用 48 张牌（去掉大小王、3 张 2、1 张 A），每人 16 张；4 人局用 52 张，每人 13 张；2 人局 48 张，每人 24 张。持红桃 3 者先出，首手必须包含红桃 3。</p>
+      </div>
+      <div class="panel">
+        <div class="panel-title">牌型</div>
+        <div class="rule-grid" id="rule-types"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">强制规则</div>
+        <p class="rule-p">见单 K 必出 A · 见对 K 必出对 A · 见 A 必出 2 · 见 2 必出炸弹。无牌可压且规则允许时可不出；已落地的牌不可收回；剩 3 张以内自动报牌。</p>
+      </div>
+      <div class="panel">
+        <div class="panel-title">计分（娱乐积分）</div>
+        <p class="rule-p">胜者得其他玩家剩余张数之和 ×1；四张炸弹额外 +2，天炸（AAA，4 人局含 AAAA）额外 +5，其余玩家各扣对应分。逃跑只记次数不计分。积分仅作娱乐记录，不兑换任何物品。</p>
+      </div>
+      <div class="panel pending-panel">
+        <div class="panel-title">待本地玩家确认</div>
+        <p class="rule-p">以下 12 项按默认实现，尚未经本地玩家确认：4 人首出、2 人牌堆、出牌方向、底牌、连对最少组数、见 K 能否用 2 压、AAA 能否不出、报牌后上家限出、天炸分值、4 人进贡等。确认后可改 <code>RuleConfig</code>，无需改代码。</p>
+      </div>
+    </section>
+
+    <!-- ===== 设置 ===== -->
+    <section id="screen-settings" class="screen">
+      <header class="simple-head">
+        <button class="icon-btn" data-go="home">‹ 返回</button>
+        <div class="head-title">设置</div>
+        <span></span>
+      </header>
+      <div class="panel">
+        <div class="setting-row">
+          <div><div class="setting-name">信天游风格背景音</div><div class="setting-desc">程序合成五声音阶，无版权素材</div></div>
+          <button class="toggle" id="toggle-bgm" role="switch" aria-checked="false"><span></span></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-name">方言提示音</div><div class="setting-desc">出牌 / 轮到你 / 炸弹的提示音效</div></div>
+          <button class="toggle" id="toggle-dialect" role="switch" aria-checked="false"><span></span></button>
+        </div>
+        <div class="setting-row">
+          <div><div class="setting-name">大字模式</div><div class="setting-desc">适合中老年玩家</div></div>
+          <button class="toggle" id="toggle-font" role="switch" aria-checked="true"><span></span></button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-title">关于</div>
+        <p class="rule-p">本试玩版用于规则与交互验收，与微信小程序源码共用同一套规则引擎和 AI。好友房与云端战绩需部署云函数后启用。</p>
+      </div>
+    </section>
+
+    <div class="toast" id="toast"></div>
+  </div>
+
+  <script>
+  // 让小程序的 store.js 在浏览器中把 wx 存储映射到 localStorage，战绩可跨刷新保留
+  window.wx = {
+    getStorageSync: function (key) {
+      try { var v = localStorage.getItem(key); return v === null ? '' : JSON.parse(v); }
+      catch (e) { return ''; }
+    },
+    setStorageSync: function (key, value) {
+      try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+    },
+    removeStorageSync: function (key) {
+      try { localStorage.removeItem(key); } catch (e) {}
+    }
+  };
+  </script>
+  <script src="fx.js"></script>
+  <script src="../bundle.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+<view class="page">
+  <view class="panel">
+    <view class="panel-title">我的战绩</view>
+    <view class="stat-grid">
+      <view wx:for="{{stats}}" wx:key="label" class="stat-cell">
+        <view class="stat-num">{{item.value}}</view>
+        <view class="stat-label">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">本地排行榜</view>
+    <view wx:if="{{!leaderboard.length}}" class="empty">还没有战绩，先打一局吧</view>
+    <view wx:for="{{leaderboard}}" wx:key="name" class="list-row">
+      <view class="list-main">{{index+1}}. {{item.name}} <text class="muted">({{item.games}} 局)</text></view>
+      <view class="list-score {{item.score>=0?'up':'down'}}">{{item.score}}</view>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">最近对局</view>
+    <view wx:if="{{!records.length}}" class="empty">暂无记录</view>
+    <view wx:for="{{records}}" wx:key="index" class="list-row">
+      <view class="list-main">{{item.winner?'胜':'负'}} · {{item.modeText}}</view>
+      <view class="list-score {{item.delta>0?'up':'down'}}">{{item.delta>0?'+':''}}{{item.delta}}</view>
+    </view>
+  </view>
+
+  <button class="btn btn-outline btn-block clear-btn" bindtap="onClear">清空本机战绩</button>
+</view>

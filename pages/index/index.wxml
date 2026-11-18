@@ -1,0 +1,49 @@
+<view class="page index-page">
+  <view class="hero">
+    <view class="hero-title">陕北捉老麻</view>
+    <view class="hero-sub">夜宴牌局 · 娱乐积分</view>
+  </view>
+
+  <view class="panel" wx:if="{{hasSession}}">
+    <view class="panel-title">继续对局</view>
+    <view class="muted">有一局未完成的牌局（{{sessionDesc}}）</view>
+    <view class="btn-row">
+      <button class="btn" bindtap="onContinue">继续</button>
+      <button class="btn btn-outline" bindtap="onDiscardSession">放弃</button>
+    </view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">人机对战</view>
+    <view class="row-label">人数</view>
+    <view class="segmented">
+      <view wx:for="{{counts}}" wx:key="*this" class="seg {{aiCount===item?'on':''}}" data-count="{{item}}" bindtap="onAiCount">{{item}} 人</view>
+    </view>
+    <view class="row-label">难度</view>
+    <view class="segmented">
+      <view wx:for="{{levels}}" wx:key="value" class="seg {{aiLevel===item.value?'on':''}}" data-level="{{item.value}}" bindtap="onAiLevel">{{item.label}}</view>
+    </view>
+    <button class="btn btn-block start-btn" bindtap="onStartAi">开 始 对 局</button>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">同屏热座</view>
+    <view class="row-label">人数</view>
+    <view class="segmented">
+      <view wx:for="{{counts}}" wx:key="*this" class="seg {{hotCount===item?'on':''}}" data-count="{{item}}" bindtap="onHotCount">{{item}} 人</view>
+    </view>
+    <button class="btn btn-outline btn-block start-btn" bindtap="onStartHot">开 始 热 座</button>
+  </view>
+
+  <view class="nav-grid">
+    <view class="nav-item" data-page="rules" bindtap="onNav">
+      <view class="nav-icon">规</view><view class="nav-label">玩法规则</view>
+    </view>
+    <view class="nav-item" data-page="stats" bindtap="onNav">
+      <view class="nav-icon">绩</view><view class="nav-label">战绩统计</view>
+    </view>
+    <view class="nav-item" data-page="settings" bindtap="onNav">
+      <view class="nav-icon">设</view><view class="nav-label">设置</view>
+    </view>
+  </view>
+</view>
