@@ -4,16 +4,22 @@
   "packOptions": {
     "ignore": [
       { "type": "folder", "value": "h5" },
-      { "type": "folder", "value": "tools" }
+      { "type": "folder", "value": "tools" },
+      { "type": "folder", "value": ".git" },
+      { "type": "file", "value": "README.md" }
     ]
   },
   "setting": {
-    "urlCheck": false,
-    "es6": false,
-    "enhance": false,
-    "postcss": false,
-    "minified": false,
-    "bigPackageSizeSupport": true
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "minifyWXSS": true,
+    "minifyWXML": true,
+    "bigPackageSizeSupport": true,
+    "checkSiteMap": true,
+    "compileHotReLoad": false
   },
   "compileType": "miniprogram",
   "libVersion": "3.5.0",

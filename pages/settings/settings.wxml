@@ -44,4 +44,16 @@
     <view class="panel-title">关于</view>
     <view class="rule-p">陕北捉老麻 · 娱乐牌局。积分仅作本地娱乐记录，不涉及任何真实货币或物品兑换。</view>
   </view>
+  <!-- [RELEASE 2026-11-18] 线上排错出口：小程序无控制台，玩家遇到白屏时我们拿不到现场。
+       这里把最近异常复制出来，是提审前最低成本的"反馈通道"。 -->
+  <view class="panel">
+    <view class="panel-title">运行诊断</view>
+    <view class="setting-row">
+      <view class="setting-info">
+        <view class="setting-name">异常记录</view>
+        <view class="setting-desc">{{errorCount ? '最近 ' + errorCount + ' 条，可复制后反馈' : '暂无异常记录'}}</view>
+      </view>
+      <button class="icon-btn" size="mini" bindtap="onCopyErrors">复制</button>
+    </view>
+  </view>
 </view>

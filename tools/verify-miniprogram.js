@@ -5,10 +5,15 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, todo = 0;
 function ok(cond, name) {
   if (cond) { pass++; console.log('  PASS  ' + name); }
   else { fail++; console.log('  FAIL  ' + name); }
+}
+// 只能人工处理的项目（拿 AppID、备案、版号），不算代码失败，但要显式留在清单上
+function pending(cond, name) {
+  if (cond) { pass++; console.log('  PASS  ' + name); }
+  else { todo++; console.log('  TODO  ' + name + '   ← 需人工处理'); }
 }
 function exists(p) { return fs.existsSync(path.join(root, p)); }
 function readJSON(p) {
@@ -55,10 +60,12 @@ console.log('\n=== 6. 核心逻辑与音频资源 ===');
 ok(exists('bundle.js'), 'bundle.js 存在（唯一真相源，无副本）');
 ok(!exists('core'), '不存在多余的 core/ 副本目录');
 ok(!exists('miniprogram'), '不存在多余的 miniprogram/ 嵌套目录');
-['play.wav', 'turn.wav', 'bomb.wav', 'bgm.wav'].forEach(function (f) {
+['play.mp3', 'turn.mp3', 'bomb.mp3', 'bgm.mp3'].forEach(function (f) {
   ok(exists('assets/audio/' + f), '音频 ' + f);
 });
+ok(!exists('assets/audio/bgm.wav'), '未压缩 WAV 已清理（只保留 mp3，省约 258KB）');
 ok(exists('utils/audio.js') && exists('utils/fx.js'), '音频/特效模块存在');
+ok(exists('utils/privacy.js'), '隐私/相册授权模块存在');
 
 console.log('\n=== 7. 关键能力接入检查 ===');
 const gameJs = fs.readFileSync(path.join(root, 'pages/game/game.js'), 'utf8');
@@ -120,9 +127,44 @@ ok(/passReason/.test(gameSrc) && /pass-reason/.test(gameWxml), '不出被禁用�
 ok(/seat-last/.test(gameWxml), '座位标记上一手');
 ok(/flashPlay/.test(gameSrc) && /shake/.test(gameWxml), '出牌动效与炸弹震屏');
 ok(/AI_LINES/.test(gameSrc), 'AI 有台词');
-ok(/paintPoster/.test(resultSrc) && /saveImageToPhotosAlbum/.test(resultSrc), '结算页可生成并保存战绩图');
+ok(/paintPoster/.test(resultSrc) && /privacy\.saveImage/.test(resultSrc), '结算页可生成并保存战绩图');
 ok(/id="poster"/.test(resultWxml), '战绩图 canvas 已挂载');
 ok(/roundDone/.test(resultSrc) && /totals/.test(resultWxml), '结算页展示本轮累计');
 
-console.log('\n总计 PASS=' + pass + '  FAIL=' + fail);
+console.log('\n=== 11. 发布就绪（AppID / 隐私 / 更新 / 体积 / 排错） ===');
+ok(typeof projectCfg.appid === 'string' && projectCfg.appid.length > 0, 'project.config.json 有 appid 字段');
+pending(projectCfg.appid !== 'touristappid', 'appid 已换成真实 AppID（当前 ' + projectCfg.appid + '）');
+const setting = projectCfg.setting || {};
+ok(setting.urlCheck === true, 'urlCheck 已开启');
+ok(setting.es6 === true, 'ES6 转 ES5 已开启');
+ok(setting.enhance === true, '增强编译已开启');
+ok(setting.minified === true && setting.minifyWXSS === true && setting.minifyWXML === true, '上传压缩已开启');
+const ig = (projectCfg.packOptions && projectCfg.packOptions.ignore) || [];
+const igVal = function (t) { return ig.some(function (x) { return x.type === t; }); };
+ok(igVal('folder') && ig.some(function (x) { return x.value === 'h5'; }), 'h5/ 已排除出包');
+ok(ig.some(function (x) { return x.value === 'tools'; }), 'tools/ 已排除出包');
+ok(ig.some(function (x) { return x.value === 'README.md'; }), 'README.md 已排除出包');
+ok(appCfg.lazyCodeLoading === 'requiredComponents', 'lazyCodeLoading 已开启（启动优化）');
+ok(/getUpdateManager/.test(appSrc), '已接入版本更新提示');
+ok(/onError/.test(appSrc) && /onUnhandledRejection/.test(appSrc), '已捕获全局异常');
+ok(/getErrorLog/.test(appSrc), '异常记录可读取（设置页可复制）');
+const privacySrc = fs.readFileSync(path.join(root, 'utils/privacy.js'), 'utf8');
+ok(/getPrivacySetting/.test(privacySrc), '隐私授权状态查询已接入');
+ok(/requirePrivacyAuthorize/.test(privacySrc), '隐私授权弹窗已接入');
+ok(resultSrc.indexOf('ensurePrivacy') >= 0 && resultSrc.indexOf('ensurePrivacy') < resultSrc.indexOf('ensurePoster', resultSrc.indexOf('onSavePoster')), '保存流程先要隐私授权再画 canvas（手势上下文不丢失）');
+const audioSrc = fs.readFileSync(path.join(root, 'utils/audio.js'), 'utf8');
+ok(/\.mp3'/.test(audioSrc) && !/\.wav'/.test(audioSrc), '音频引用 mp3（已压缩）');
+const skipDirs = ['.git', 'h5', 'tools', 'node_modules', '.workbuddy'];
+function walkSize(p) {
+  const name = path.basename(p);
+  if (skipDirs.indexOf(name) >= 0 || name === 'README.md' || name === '.DS_Store') return 0;
+  const st = fs.statSync(p);
+  if (!st.isDirectory()) return st.size;
+  return fs.readdirSync(p).reduce(function (s, n) { return s + walkSize(path.join(p, n)); }, 0);
+}
+const packKB = walkSize(root) / 1024;
+ok(packKB < 2048, '预估打包体积 < 2MB（实际 ' + packKB.toFixed(0) + ' KB）');
+
+console.log('\n总计 PASS=' + pass + '  FAIL=' + fail + (todo ? '  TODO=' + todo : ''));
+if (todo) console.log('TODO 项需在小程序后台/资质侧人工完成，不影响代码构建。');
 process.exit(fail ? 1 : 0);

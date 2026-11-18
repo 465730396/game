@@ -1,13 +1,15 @@
 'use strict';
 
-// 小程序音频：InnerAudioContext 播放本地 WAV（由 tools/gen-audio.js 生成）。
+// 小程序音频：InnerAudioContext 播放本地音频（由 tools/gen-audio.js 合成并转码）。
 // 替代 H5 版的 WebAudio 程序合成——小程序无 AudioContext，故把合成结果预先落盘。
+// [RELEASE 2026-11-18] 产物用 mp3 而非 wav：同为合成音源，wav 是未压缩 PCM
+// （4 个文件 316KB），转 64kbps mp3 后共约 58KB，对首包体积影响显著。
 var SOURCES = {
-  PLAY: '/assets/audio/play.wav',
-  TURN: '/assets/audio/turn.wav',
-  BOMB: '/assets/audio/bomb.wav'
+  PLAY: '/assets/audio/play.mp3',
+  TURN: '/assets/audio/turn.mp3',
+  BOMB: '/assets/audio/bomb.mp3'
 };
-var BGM_SRC = '/assets/audio/bgm.wav';
+var BGM_SRC = '/assets/audio/bgm.mp3';
 
 function createPlayer(src, loop) {
   try {

@@ -74,8 +74,29 @@ seq.forEach(function (idx, i) {
 });
 fs.writeFileSync(path.join(outDir, 'bgm.wav'), wav(concat(bgmParts)));
 
-['play.wav', 'turn.wav', 'bomb.wav', 'bgm.wav'].forEach(function (f) {
-  const s = fs.statSync(path.join(outDir, f));
-  console.log('生成 ' + f + ' (' + (s.size / 1024).toFixed(1) + ' KB)');
+// [RELEASE 2026-11-18] 转码：合成结果是未压缩 PCM WAV（4 个共 316KB），
+// 直接打进小程序包太浪费首包预算。InnerAudioContext 支持 mp3，
+// 故生成后立刻转 64kbps 单声道 mp3 并删除中间 wav（316KB → 58KB）。
+const { execFileSync } = require('child_process');
+const names = ['play', 'turn', 'bomb', 'bgm'];
+try {
+  names.forEach(function (name) {
+    const wavPath = path.join(outDir, name + '.wav');
+    const mp3Path = path.join(outDir, name + '.mp3');
+    execFileSync('ffmpeg', [
+      '-y', '-loglevel', 'error', '-i', wavPath,
+      '-codec:a', 'libmp3lame', '-b:a', '64k', '-ar', '44100', '-ac', '1', mp3Path
+    ]);
+    fs.unlinkSync(wavPath);
+  });
+} catch (e) {
+  console.error('\n转码失败：需要本机安装 ffmpeg（macOS: brew install ffmpeg）。');
+  console.error('当前只生成了 wav，utils/audio.js 引用的是 mp3，需先转码再使用。');
+  process.exit(1);
+}
+
+names.forEach(function (name) {
+  const s = fs.statSync(path.join(outDir, name + '.mp3'));
+  console.log('生成 ' + name + '.mp3 (' + (s.size / 1024).toFixed(1) + ' KB)');
 });
 console.log('输出目录：' + outDir);

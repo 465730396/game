@@ -1,6 +1,7 @@
 'use strict';
 
 var app = getApp();
+var privacy = require('../../utils/privacy.js');
 
 Page({
   data: {
@@ -156,28 +157,47 @@ Page({
 
   onSavePoster: function () {
     var self = this;
-    wx.showLoading({ title: '生成中', mask: true });
-    this.ensurePoster(function (path) {
-      wx.hideLoading();
-      if (!path) { wx.showToast({ title: '生成失败，可先试试截图', icon: 'none' }); return; }
-      self.saveOrPreview(path);
+    if (this.savingPoster) return;
+    this.savingPoster = true;
+    // [RELEASE 2026-11-18] 隐私授权必须在用户手势的同步链路里拉起：先要授权，再画 canvas。
+    // 反过来（画完再弹）手势上下文已丢失，弹窗拉不起来——详见 utils/privacy.js。
+    privacy.ensurePrivacy(function (agreed) {
+      if (!agreed) {
+        self.savingPoster = false;
+        self.showSaveFail('privacy', null);
+        return;
+      }
+      wx.showLoading({ title: '生成中', mask: true });
+      self.ensurePoster(function (path) {
+        wx.hideLoading();
+        if (!path) {
+          self.savingPoster = false;
+          wx.showToast({ title: '生成失败，可先截图保存', icon: 'none' });
+          return;
+        }
+        privacy.saveImage(path, function (ok, reason) {
+          self.savingPoster = false;
+          if (ok) { wx.showToast({ title: '已保存到相册' }); return; }
+          self.showSaveFail(reason, path);
+        });
+      });
     });
   },
 
-  saveOrPreview: function (path) {
-    wx.saveImageToPhotosAlbum({
-      filePath: path,
-      success: function () { wx.showToast({ title: '已保存到相册' }); },
-      fail: function (err) {
-        var msg = (err && err.errMsg) || '';
-        if (msg.indexOf('auth') >= 0 || msg.indexOf('deny') >= 0) {
-          wx.showModal({
-            title: '需要相册权限',
-            content: '保存战绩图需要相册权限，可在设置里开启。',
-            confirmText: '去设置',
-            success: function (m) { if (m.confirm) wx.openSetting(); }
-          });
-        } else {
+  // 失败分流：隐私未同意 / 相册权限被拒 / 系统级关闭 / 其他，四种原因给四种出口。
+  // 旧实现把所有失败都归为"auth 或 deny"，隐私未授权时玩家会陷入死循环。
+  showSaveFail: function (reason, path) {
+    var tip = privacy.explain(reason);
+    wx.showModal({
+      title: tip.title,
+      content: tip.content,
+      confirmText: tip.confirmText,
+      cancelText: reason === 'other' ? '取消' : '稍后',
+      success: function (m) {
+        if (!m.confirm) return;
+        if (reason === 'privacy' || reason === 'denied') {
+          privacy.openAlbumSetting(function () {});
+        } else if (reason === 'other' && path) {
           wx.previewImage({ urls: [path], current: path });
         }
       }

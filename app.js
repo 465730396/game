@@ -4,6 +4,54 @@
 var SBM = require('./bundle.js');
 var audio = require('./utils/audio.js');
 
+// [RELEASE 2026-11-18] 线上排错兜底：小程序没有控制台日志留存，玩家报"白屏/点不动"时
+// 开发者拿不到任何现场。这里把最近 20 条异常落本地，设置页可一键复制上报。
+var ERR_KEY = 'sbm_errlog';
+var ERR_MAX = 20;
+
+function pushError(kind, detail) {
+  try {
+    var list = wx.getStorageSync(ERR_KEY);
+    if (!Array.isArray(list)) list = [];
+    var msg = '';
+    var stack = '';
+    if (detail && detail.message) { msg = detail.message; stack = detail.stack || ''; }
+    else { msg = String(detail || ''); }
+    list.unshift({
+      t: Date.now(),
+      kind: kind,
+      msg: msg.slice(0, 300),
+      stack: String(stack).slice(0, 800)
+    });
+    wx.setStorageSync(ERR_KEY, list.slice(0, ERR_MAX));
+  } catch (e) {}
+}
+
+// [RELEASE 2026-11-18] 版本更新：不接 UpdateManager 时，发版后老用户会一直跑旧包，
+// 修好的 bug 到不了他们手上，直到手动杀掉整个微信进程。
+function setupUpdate() {
+  try {
+    if (!wx.getUpdateManager) return;
+    var um = wx.getUpdateManager();
+    um.onUpdateReady(function () {
+      wx.showModal({
+        title: '发现新版本',
+        content: '新版本已下载完成，重启后生效。',
+        showCancel: false,
+        confirmText: '立即重启',
+        success: function () { try { um.applyUpdate(); } catch (e) {} }
+      });
+    });
+    um.onUpdateFailed(function () {
+      wx.showModal({
+        title: '更新失败',
+        content: '请退出小程序（右上角胶囊 → 关闭）后重新进入。',
+        showCancel: false
+      });
+    });
+  } catch (e) {}
+}
+
 App({
   globalData: {
     SBM: SBM,
@@ -22,6 +70,26 @@ App({
       var safe = win.screenHeight && win.safeArea ? (win.screenHeight - win.safeArea.bottom) : 0;
       this.globalData.safeBottom = safe > 0 ? safe : 0;
     } catch (e) {}
+    setupUpdate();
+  },
+
+  onError: function (err) {
+    pushError('error', err);
+  },
+
+  onUnhandledRejection: function (res) {
+    pushError('promise', res && res.reason);
+  },
+
+  getErrorLog: function () {
+    try {
+      var list = wx.getStorageSync(ERR_KEY);
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  },
+
+  clearErrorLog: function () {
+    try { wx.removeStorageSync(ERR_KEY); } catch (e) {}
   },
 
   getSettings: function () {

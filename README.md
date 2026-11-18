@@ -16,8 +16,9 @@ game/
 │   └── settings/                # 音效、振动、大字模式
 ├── utils/
 │   ├── audio.js                 # InnerAudioContext 音频管理
+│   ├── privacy.js               # 隐私协议 + 相册授权封装
 │   └── fx.js                    # Canvas 2D 背景与庆祝特效
-├── assets/audio/                # 程序合成的 WAV 音效与 BGM（无版权素材）
+├── assets/audio/                # 程序合成的 mp3 音效与 BGM（无版权素材，共约 58KB）
 ├── bundle.js                    # 核心逻辑唯一真相源：规则引擎 / AI / 控制器 / 存储
 ├── h5/                          # H5 试玩版（index.html + app.js + fx.js + styles.css）
 ├── tools/                       # 测试与资源生成脚本
@@ -30,11 +31,11 @@ game/
 
 ### 微信小程序
 
-1. 打开 `project.config.json`，把 `appid` 从占位的 `touristappid` 换成你的真实小程序 AppID。
+1. 用真实 AppID 替换占位值（只能跑模拟器的 `touristappid`）：`node tools/set-appid.js wx1234567890abcdef`，也可直接改 `project.config.json` 的 `appid`。
 2. 用微信开发者工具**导入本目录（game/ 根目录，不是子目录）**，编译即可预览。
 3. 真机预览需在开发者工具中点击"预览"扫码。
 
-`miniprogramRoot` 为 `./`，`packOptions.ignore` 已排除 `h5/` 与 `tools/`，它们不会被打进小程序包。
+`miniprogramRoot` 为 `./`，`packOptions.ignore` 已排除 `h5/`、`tools/`、`.git/`、`README.md`，它们不会被打进小程序包。发布相关编译项（ES6 转换、增强编译、压缩、`urlCheck`）已在 `project.config.json` 中按发布配置开启。
 
 ### H5 试玩版
 
@@ -64,7 +65,7 @@ game/
 - **生命周期处理**：`onHide` 暂停 AI 定时器、音频与特效并保存快照，`onShow` 恢复。
 - **结算**：按名次展示积分、剩余张数与炸弹数，标出炸弹倍率；热座使用"赢家"角标；"再来一局"沿用原模式/人数/难度并延续轮次。
 - **战绩图分享**：结算页用 Canvas 2D 现画一张战绩卡，可保存到相册；分享自动带该图。
-- **设置**：背景音乐、提示音、振动反馈、大字模式（全页面生效）、重看新手引导。
+- **设置**：背景音乐、提示音、振动反馈、大字模式（全页面生效）、重看新手引导、运行诊断（复制本地异常记录）。
 - **本机战绩**：总局数/胜局/逃跑/累计积分、本地排行榜、最近对局（含时间与名次）；清空战绩不影响设置。
 
 ## 开发与测试
@@ -74,22 +75,40 @@ game/
 | 命令 | 作用 |
 | --- | --- |
 | `node tools/test-bundle.js` | 核心逻辑回归（56 项）：牌型、带牌、强制规则、配置、倍率计分与守恒、规则档、AI 留炸、牌力，含 2/3/4 人 × 3 难度各 20 局整局模拟 |
-| `node tools/verify-miniprogram.js` | 工程校验（96 项）：页面四件套、JSON 合法性、WXML 标签配对、资源齐全、能力接入、设计增强、H5 归档 |
-| `node tools/gen-audio.js` | 重新生成 `assets/audio/` 下的 4 个 WAV 文件 |
+| `node tools/verify-miniprogram.js` | 工程校验（115 项）：页面四件套、JSON 合法性、WXML 标签配对、资源齐全、能力接入、发布配置、隐私/更新/体积 |
+| `node tools/gen-audio.js` | 重新生成 `assets/audio/` 下的 4 个音频：先合成 WAV，再用 ffmpeg 转 64kbps mp3 并删除中间文件（需本机装 ffmpeg） |
+| `node tools/set-appid.js <AppID>` | 把 `project.config.json` 的占位 AppID 替换为真实值 |
 
 改动 `bundle.js` 后无需任何同步操作，直接刷新小程序即可生效。建议提交前跑一遍上面两个校验脚本。
+
+校验脚本末尾的 `TODO` 项表示需要人工处理（如换 AppID），不影响代码构建；`FAIL` 才是需要修的代码问题。
+
+## 上架前必须人工完成的事
+
+代码层已就绪（`verify-miniprogram.js` 只留 1 项 AppID 的 TODO），下面这些在小程序后台或资质侧完成，改代码解决不了：
+
+1. **AppID** — 后台「开发管理 → 开发设置」取 AppID，用 `tools/set-appid.js` 写入。`touristappid` 只能跑模拟器，无法上传代码。
+2. **用户隐私保护指引** — 后台「设置 → 服务内容声明 → 用户隐私保护指引」必须声明**相册（仅写入）**，否则保存战绩图会被隐私接口拦截（`errno 112`，重试无效）。本项目另涉及设备信息（`getWindowInfo`，仅用于安全区计算）与本地存储（对局记录，不上传）。
+3. **ICP 备案** — 2023-09 起新小程序须先完成备案才能发布，需主体证件与负责人信息。
+4. **服务类目与版号** — 棋牌/游戏类目需《网络游戏电子出版物审批文号》，棋牌类通常还需《网络文化经营许可证》，且需企业主体；个人主体无法选择游戏类目。
+5. **素材** — 头像 144×144、简介、3~5 张真机截图；名称含牌类词，建议备 2~3 个备选名以防查重。
+6. **真机验证**（模拟器测不出）— iOS 静音模式下的振动、BGM 切后台恢复、Canvas 战绩图在低端机上的清晰度、刘海屏底部按钮安全区。
+
+设置页「运行诊断」可一键复制本地异常记录，作为提审期与上线后的反馈通道。
 
 ## 实现说明
 
 - **核心与视图分离**：`bundle.js` 是无平台依赖的纯数据逻辑（内部包含规则引擎、AI、控制器、存储），视图层完全用 `setData` 驱动，不使用 DOM 或 `innerHTML`。
 - **存储**：store 模块自动检测 `wx.getStorageSync`，小程序的走 wx 存储，浏览器回退到 `localStorage`。
-- **音频**：小程序没有 WebAudio 程序合成 API，因此用 `tools/gen-audio.js` 以纯代码生成 WAV 文件，再由 `InnerAudioContext` 播放。
+- **音频**：小程序没有 WebAudio 程序合成 API，因此用 `tools/gen-audio.js` 以纯代码合成 WAV，再转 64kbps mp3 供 `InnerAudioContext` 播放（WAV 是未压缩 PCM，4 个文件 316KB；转 mp3 后共 58KB）。
+- **隐私与相册**：`utils/privacy.js` 封装了「同意隐私协议 → 保存到相册」的正确顺序。必须在用户点击的同步链路里先调 `requirePrivacyAuthorize`，再画 canvas——反过来（画完再弹）手势上下文已丢失，弹窗拉不起来。失败按隐私未同意 / 相册被拒 / 系统级关闭 / 其他四类分流提示。
+- **线上排错**：`app.js` 捕获 `onError` 与 `onUnhandledRejection`，保留最近 20 条异常到本地，设置页可复制；同时接入 `getUpdateManager`，发版后主动提示重启换包。
 - **特效**：`utils/fx.js` 使用小程序 Canvas 2D（`SelectorQuery` 取节点 + `canvas.requestAnimationFrame`），实现星空、山峦、孔明灯、窑洞暖光与庆祝烟花。
 - **代码标记**：规则引擎中的历史修复带 `[FIX 2026-11-18]` 注释，上线补齐带 `[RELEASE 2026-11-18]`，本轮设计改进（倍率计分、轮次、规则档、手感、AI 人格、战绩图）带 `[DESIGN 2026-11-18]`，便于追踪来源。
 
 ## 已知事项
 
-1. `project.config.json` 的 `appid` 需替换为真实 AppID（当前为游客占位）。
+1. `project.config.json` 的 `appid` 仍是游客占位 `touristappid`，上传前用 `node tools/set-appid.js <AppID>` 替换。这是 `verify-miniprogram.js` 中唯一的 TODO 项，不换就无法上传代码。
 2. `tools/build-bundle.js` 原用于从 `../shengbei-laomazi/utils` 拼接出 `bundle.js`，该源目录当前不在仓库内。目前 `bundle.js` 是唯一真相源并已纳入版本管理；构建脚本在源目录缺失时会明确报错，并阻止缺少历史修复标记的旧产物覆盖当前文件（确认要覆盖可加 `--force`）。
 3. 好友房、云端战绩、账号体系尚未实现，需要后端/云函数支持。积分仅作本机娱乐记录。
 4. 游戏内规则页列出了 12 项"待本地玩家确认"的默认规则取舍，需由玩家确认后再固化。
