@@ -5,6 +5,7 @@
 .btn-row { display: flex; gap: 20rpx; margin-top: 20rpx; }
 .btn-row .btn { flex: 1; }
 .start-btn { margin-top: 32rpx; }
+.rule-hint { font-size: 22rpx; line-height: 1.5; margin-top: 12rpx; }
 .nav-grid { display: flex; gap: 16rpx; }
 .nav-item {
   flex: 1; background: var(--bg-panel); border: 1rpx solid rgba(232,197,122,0.18);

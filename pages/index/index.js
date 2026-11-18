@@ -12,6 +12,8 @@ Page({
     aiCount: 3,
     aiLevel: 'NORMAL',
     hotCount: 3,
+    ruleMode: 'CLASSIC',
+    rules: [{ value: 'CLASSIC', label: '经典规则' }, { value: 'SIMPLE', label: '简化规则' }],
     hasSession: false,
     sessionDesc: ''
   },
@@ -24,6 +26,7 @@ Page({
     var alive = !!(s && s.game && s.game.players && s.game.players.length && s.game.status === 'PLAYING');
     this.setData({
       largeFont: st.largeFont !== false,
+      ruleMode: st.ruleMode === 'SIMPLE' ? 'SIMPLE' : 'CLASSIC',
       hasSession: alive,
       sessionDesc: alive ? this.buildSessionDesc(s) : ''
     });
@@ -44,14 +47,30 @@ Page({
   onAiLevel: function (e) { this.setData({ aiLevel: e.currentTarget.dataset.level }); },
   onHotCount: function (e) { this.setData({ hotCount: Number(e.currentTarget.dataset.count) }); },
 
+  // [DESIGN 2026-11-18] 规则档：经典档保留 4 条强制出牌规则，简化档全部关闭，供新手过渡。
+  onRuleMode: function (e) {
+    var mode = e.currentTarget.dataset.value === 'SIMPLE' ? 'SIMPLE' : 'CLASSIC';
+    var st = app.getSettings();
+    st.ruleMode = mode;
+    app.saveSettings(st);
+    this.setData({ ruleMode: mode });
+    audio.vibrate();
+  },
+
   onStartAi: function () {
     audio.init();
-    wx.navigateTo({ url: '/pages/game/game?mode=AI&count=' + this.data.aiCount + '&level=' + this.data.aiLevel });
+    wx.navigateTo({
+      url: '/pages/game/game?mode=AI&count=' + this.data.aiCount +
+        '&level=' + this.data.aiLevel + '&rule=' + this.data.ruleMode
+    });
   },
 
   onStartHot: function () {
     audio.init();
-    wx.navigateTo({ url: '/pages/game/game?mode=HOTSEAT&count=' + this.data.hotCount + '&level=NORMAL' });
+    wx.navigateTo({
+      url: '/pages/game/game?mode=HOTSEAT&count=' + this.data.hotCount +
+        '&level=NORMAL&rule=' + this.data.ruleMode
+    });
   },
 
   onContinue: function () { wx.navigateTo({ url: '/pages/game/game?resume=1' }); },

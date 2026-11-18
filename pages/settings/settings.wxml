@@ -31,6 +31,16 @@
     </view>
   </view>
   <view class="panel">
+    <view class="panel-title">引导</view>
+    <view class="setting-row">
+      <view class="setting-info">
+        <view class="setting-name">重看新手引导</view>
+        <view class="setting-desc">下次进入牌桌时再次展示三句话说明</view>
+      </view>
+      <button class="icon-btn" size="mini" bindtap="onResetGuide">重看</button>
+    </view>
+  </view>
+  <view class="panel">
     <view class="panel-title">关于</view>
     <view class="rule-p">陕北捉老麻 · 娱乐牌局。积分仅作本地娱乐记录，不涉及任何真实货币或物品兑换。</view>
   </view>

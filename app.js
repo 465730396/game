@@ -49,6 +49,23 @@ App({
     try { wx.removeStorageSync('sbm_session'); } catch (e) {}
   },
 
+  // [DESIGN 2026-11-18] 一轮多局：单局结算太碎片，没有"翻盘"叙事。
+  // 以 5 局为一轮累计积分，轮次状态跨页面/跨进程持久化。
+  getRound: function () {
+    try { return wx.getStorageSync('sbm_round') || null; } catch (e) { return null; }
+  },
+
+  saveRound: function (state) {
+    this.globalData.round = state;
+    try { wx.setStorageSync('sbm_round', state); } catch (e) {}
+    return state;
+  },
+
+  clearRound: function () {
+    this.globalData.round = null;
+    try { wx.removeStorageSync('sbm_round'); } catch (e) {}
+  },
+
   // [RELEASE 2026-11-18] 主动退出未完成对局：记一次逃跑（只记次数、不计分），并清除快照避免重复统计。
   recordEscape: function () {
     this.clearSession();

@@ -18,6 +18,10 @@
   </view>
   <view class="panel">
     <view class="panel-title">计分（娱乐积分）</view>
-    <view class="rule-p">胜者得其他玩家剩余张数之和 ×1；四张炸弹额外 +2，天炸（AAA，4 人局含 AAAA）额外 +5，其余玩家各扣对应分。逃跑只记次数不计分。积分仅作娱乐记录，不兑换任何物品。</view>
+    <view class="rule-p">胜者得其他玩家剩余张数之和，其余玩家各扣自己的剩余张数（有赢必有输，总分守恒）。本局每出现一个炸弹，全桌输赢 ×2；天炸算两个炸弹；最多 ×4。5 局为一轮累计。逃跑只记次数不计分。积分仅作娱乐记录，不兑换任何物品。</view>
+  </view>
+  <view class="panel">
+    <view class="panel-title">两种规则档</view>
+    <view class="rule-p">经典档保留上方全部强制出牌规则；简化档关闭「见 K 必出 A、见对 K 必出对 A、见 A 必出 2、见 2 必出炸弹」，适合第一次接触的玩家。首页可随时切换。</view>
   </view>
 </view>

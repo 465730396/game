@@ -69,7 +69,14 @@ function defaultRuleConfig(playerCount) {
     declareCards: { enabled: true, threshold: 3, previousMustPlayMax: false },
     // [FIX 2026-11-18] cards 由 '3333' 改为 'AAA'：实际天炸是三张 A，原值与实现矛盾（且该字段未被读取）。
     skyBomb: { enabled: true, cards: 'AAA', firstHandOnly: true },
-    scoring: { unit: 1, perRemainingCard: 1, bombBonus: 2, skyBombBonus: 5 }
+    // [DESIGN 2026-11-18] 炸弹由"加分"改为"倍率"：旧实现 bombBonus=2 仅相当于一局输赢的 6%，
+    // 玩家没有为炸弹冒险的动机；且"自己+2、其余各-2"每打一个炸弹就让全服总分缩水，积分不守恒。
+    // 现在：每出现 1 个炸弹计 1 个翻倍点（天炸计 2 点），全桌输赢按 2^点 放大并封顶。
+    scoring: {
+      unit: 1, perRemainingCard: 1,
+      bombMode: 'MULTIPLIER', bombMultiplier: 2, maxMultiplier: 4,
+      skyBombPoints: 2
+    }
   };
 }
 
@@ -408,23 +415,30 @@ function settleRound(context) {
   scores.forEach(function (s) {
     if (s.seat === winnerSeat) s.delta = totalRemaining * perCard * unit;
     else s.delta = -s.remaining * perCard * unit;
-    s.finalScore += s.delta;
   });
+  // [DESIGN 2026-11-18] 炸弹倍率制。
+  // 旧实现逐个炸弹给 owner +bonus、其余每家 -bonus，3 人局净 -bonus、4 人局净 -2bonus，
+  // 全服积分持续缩水，战绩页累计分长期失真。倍率制对整个 delta 统一放大，天然守恒。
+  var bombPoints = 0;
   playLog.forEach(function (entry) {
     if (!entry.detected || !isBomb(entry.detected)) return;
     var owner = scores.filter(function (s) { return s.seat === entry.seat; })[0];
     if (!owner) return;
     owner.bombCount += 1;
-    // [FIX 2026-11-18] 旧实现里非首手的 AAA 两个分支都不进，导致天炸零奖励。
-    // 现在：首手天炸按 skyBombBonus(+5)，其余炸弹（四炸 / 非首手天炸）按 bombBonus(+2)。
-    var isSky = entry.detected.type === TYPE.BOMB_AAA && config.skyBomb.enabled && entry.firstHand;
-    var bonus = (isSky ? config.scoring.skyBombBonus : config.scoring.bombBonus) * unit;
-    owner.delta += bonus;
-    owner.finalScore += bonus;
-    scores.forEach(function (s) {
-      if (s.seat !== entry.seat) { s.delta -= bonus; s.finalScore -= bonus; }
-    });
+    var isSky = entry.detected.type === TYPE.BOMB_AAA && config.skyBomb.enabled;
+    bombPoints += isSky ? (config.scoring.skyBombPoints || 2) : 1;
   });
+  var multiplier = 1;
+  if (bombPoints > 0 && config.scoring.bombMode !== 'OFF') {
+    var step = config.scoring.bombMultiplier || 2;
+    var cap = config.scoring.maxMultiplier || 4;
+    multiplier = Math.min(Math.pow(step, bombPoints), cap);
+  }
+  if (multiplier !== 1) {
+    scores.forEach(function (s) { s.delta *= multiplier; });
+  }
+  scores.forEach(function (s) { s.delta = Math.round(s.delta); s.finalScore += s.delta; });
+  var totalDelta = scores.reduce(function (a, s) { return a + s.delta; }, 0);
   var ranked = scores.slice().sort(function (a, b) {
     if (a.seat === winnerSeat) return -1;
     if (b.seat === winnerSeat) return 1;
@@ -434,7 +448,8 @@ function settleRound(context) {
   return {
     settlementId: 's_' + (context.roundId || 'local') + '_' + (context.settlementVersion || 1),
     idempotencyKey: (context.roundId || 'local') + ':' + (context.settlementVersion || 1),
-    scores: scores, ruleSetId: config.ruleSetId, createdAt: Date.now()
+    scores: scores, ruleSetId: config.ruleSetId, createdAt: Date.now(),
+    multiplier: multiplier, bombPoints: bombPoints, totalDelta: totalDelta
   };
 }
 
@@ -490,6 +505,30 @@ function chooseEasy(view) {
   return { action: 'PLAY', cardIds: pick.cards.map(function (c) { return c.id; }) };
 }
 
+// [DESIGN 2026-11-18] 留炸判断：旧 AI 只要压得住就一定压，经常为了跟一手小牌把炸弹甩出去。
+// 当对手手牌还很宽裕（最少的一家也 > 4 张）时，把炸弹留到后面更划算。
+function shouldHoldBomb(view, play) {
+  if (!view.canPass) return false;
+  if (!engine.isBomb(play.detected)) return false;
+  var counts = view.public.handCounts || [];
+  var least = 99;
+  for (var i = 0; i < counts.length; i++) {
+    if (i !== view.seat && counts[i] > 0 && counts[i] < least) least = counts[i];
+  }
+  return least > 4 && view.hand.length > 6;
+}
+
+// 领跑者：除自己外剩牌最少的对手
+function leaderSeatOf(view) {
+  var counts = view.public.handCounts || [];
+  var best = -1, least = 99;
+  for (var i = 0; i < counts.length; i++) {
+    if (i === view.seat || counts[i] <= 0) continue;
+    if (counts[i] < least) { least = counts[i]; best = i; }
+  }
+  return best;
+}
+
 function chooseNormal(view) {
   assertView(view);
   var legal = view.legalPlays || [];
@@ -510,6 +549,7 @@ function chooseNormal(view) {
   });
   scored.sort(function (a, b) { return b.score - a.score; });
   var best = scored[0].play;
+  if (shouldHoldBomb(view, best)) return { action: 'PASS' };
   return { action: 'PLAY', cardIds: best.cards.map(function (c) { return c.id; }) };
 }
 
@@ -541,6 +581,11 @@ function chooseHard(view) {
   var samples = 120;
   var scored = legal.map(function (play) { return { play: play, score: 0 }; });
   var opponents = sampleOpponentHands(view, samples);
+  // [DESIGN 2026-11-18] 领跑者压制：上一手出自剩牌最少的对手时必须全力顶住，
+  // 否则宁可用便宜牌跟、把大牌和炸弹留到后面。旧实现只看"自己剩多少"，AI 没有针对感。
+  var leader = leaderSeatOf(view);
+  var lastSeat = view.public.lastPlay ? view.public.lastPlay.seat : -1;
+  var pressing = lastSeat >= 0 && lastSeat === leader;
   // [FIX 2026-11-18] forEach 内的 return 只跳过本次迭代，60ms 预算失效。改用 for 可真正中断；
   // 并按实际采样数 used 归一化，避免提前中断时所有分数被 samples 固定分母压低。
   var used = 0;
@@ -553,13 +598,15 @@ function chooseHard(view) {
       var ownAfter = view.hand.length - play.cards.length;
       var usedBig = play.cards.filter(function (c) { return c.rank === '2' || engine.isBomb(play.detected); }).length;
       var expectedLeft = ownAfter + (usedBig ? 2 : 0);
-      scored[j].score += oppPressure - expectedLeft;
+      var price = play.detected.key * (pressing ? 0.2 : -0.07) + play.cards.length * (pressing ? 0.45 : 0.1);
+      scored[j].score += oppPressure - expectedLeft + price;
     }
     used++;
     if (Date.now() - start > 60) break;
   }
   if (used > 0) scored.forEach(function (entry) { entry.score /= used; });
   scored.sort(function (a, b) { return b.score - a.score; });
+  if (shouldHoldBomb(view, scored[0].play)) return { action: 'PASS' };
   return { action: 'PLAY', cardIds: scored[0].play.cards.map(function (c) { return c.id; }) };
 }
 
@@ -588,6 +635,19 @@ function createGame(options) {
   var playerCount = opt.playerCount || 3;
   var config = engine.defaultRuleConfig(playerCount);
   if (opt.config) config = opt.config;
+  // [DESIGN 2026-11-18] 规则档：简化档关闭 4 条强制出牌规则，降低新手第一局的挫败感。
+  // 引擎本来就按 forceRules 的布尔开关判定，这里只需给出另一套开关，不新增分支逻辑。
+  if (opt.ruleMode === 'SIMPLE') {
+    config.ruleMode = 'SIMPLE';
+    config.ruleSetId = 'sbm-lmz-simple';
+    config.forceRules = {
+      seeKPlayA: false, seePairKPlayPairA: false,
+      seeAPlay2: false, see2PlayBomb: false,
+      unusedBombVoid: true, tripleABombCanPass: true
+    };
+  } else {
+    config.ruleMode = 'CLASSIC';
+  }
   var seed = typeof opt.seed === 'number' ? opt.seed : (Date.now() >>> 0);
   var deck = engine.shuffle(engine.createDeck(config), seed);
   var hands = engine.deal(deck, playerCount);
@@ -818,7 +878,7 @@ function write(key, value) {
   }
 }
 
-var DEFAULT_SETTINGS = { bgm: false, dialect: false, largeFont: true, vibration: false };
+var DEFAULT_SETTINGS = { bgm: false, dialect: false, largeFont: true, vibration: false, ruleMode: 'CLASSIC' };
 
 function getSettings() {
   var saved = read('sbm_settings', {});

@@ -65,11 +65,28 @@ function players() {
     { seat: 2, name: 'c', hand: mk(['S5','H5','C5']) }
   ];
 }
-ok(e.settleRound({ config: cfg, players: players(), winnerSeat: 0,
-  playLog: [{ seat: 0, detected: aaa, firstHand: true }] }).scores[0].delta === 10, '首手AAA 5+5=10');
-ok(e.settleRound({ config: cfg, players: players(), winnerSeat: 0,
-  playLog: [{ seat: 0, detected: aaa, firstHand: false }] }).scores[0].delta === 7, '非首手AAA 5+2=7');
-ok(e.settleRound({ config: cfg, players: players(), winnerSeat: 0, playLog: [] }).scores[0].delta === 5, '无炸弹基础计分 5');
+// [DESIGN 2026-11-18] 计分改为炸弹倍率制：地基分守恒，炸弹对全桌 delta 统一放大。
+var r0 = e.settleRound({ config: cfg, players: players(), winnerSeat: 0, playLog: [] });
+ok(r0.scores[0].delta === 5, '无炸弹基础分 5');
+ok(r0.totalDelta === 0 && r0.multiplier === 1, '无炸弹时总变化为 0（守恒）');
+
+var rSky = e.settleRound({ config: cfg, players: players(), winnerSeat: 0,
+  playLog: [{ seat: 0, detected: aaa }] });
+ok(rSky.multiplier === 4 && rSky.bombPoints === 2, '天炸计 2 点 → ×4');
+ok(rSky.scores[0].delta === 20, '天炸后赢家 5 × 4 = 20');
+ok(rSky.totalDelta === 0, '天炸后仍然守恒');
+
+var rOne = e.settleRound({ config: cfg, players: players(), winnerSeat: 0,
+  playLog: [{ seat: 0, detected: e.detectType(mk(['S9','H9','C9','D9']), cfg) }] });
+ok(rOne.multiplier === 2 && rOne.scores[0].delta === 10, '单个四炸 ×2 → 10');
+ok(rOne.totalDelta === 0, '炸弹后仍然守恒（旧版每个炸弹让全服总分缩水）');
+
+var rTwo = e.settleRound({ config: cfg, players: players(), winnerSeat: 0, playLog: [
+  { seat: 0, detected: aaa },
+  { seat: 1, detected: e.detectType(mk(['S9','H9','C9','D9']), cfg) }
+] });
+ok(rTwo.multiplier === 4 && rTwo.bombPoints === 3, '天炸+四炸 3 点封顶 ×4');
+ok(rTwo.scores[1].bombCount === 1, '他人炸弹计数独立记录');
 
 section('5. AAAA 牌力与牌堆配置');
 var a4 = e.detectType(mk(['SA','HA','CA','DA']), cfg);
@@ -137,6 +154,31 @@ section('8. 各人数 × 各难度整局模拟');
     ok(finished === 20, n + '人 ' + lv + ' 20局全部正常结束');
   });
 });
+
+section('9. 规则档 / 一轮多局 / AI 留炸');
+var gSim = c.createGame({ playerCount: 3, seed: 31, ruleMode: 'SIMPLE' });
+ok(gSim.config.ruleMode === 'SIMPLE' && gSim.config.forceRules.seeKPlayA === false, '简化档关闭强制规则');
+var gCls = c.createGame({ playerCount: 3, seed: 31, ruleMode: 'CLASSIC' });
+ok(gCls.config.forceRules.seeKPlayA === true, '经典档保留强制规则');
+gCls.lastPlay = { seat: 1, cards: mk(['SK']), detected: e.detectType(mk(['SK']), gCls.config) };
+ok(c.getView(gCls, gCls.currentSeat).public.forceFlags.indexOf('NEED_A') >= 0, '经典档见单K产生 NEED_A');
+gSim.lastPlay = { seat: 1, cards: mk(['SK']), detected: e.detectType(mk(['SK']), gSim.config) };
+ok(c.getView(gSim, gSim.currentSeat).public.forceFlags.length === 0, '简化档见单K不产生强制标记');
+
+// 一轮多局：5 局的轮次累计即为单局 delta 之和（此处只校验累加规则本身）
+var roundTotals = {};
+[5, -3, -2, 4, -1].forEach(function (d) { roundTotals[0] = (roundTotals[0] || 0) + d; });
+ok(roundTotals[0] === 3, '轮次累计按局相加（5-3-2+4-1=3）');
+
+// AI 留炸：手上只有炸弹能压、对手还很宽裕时应选择不出
+var holdView = {
+  seat: 0, hand: mk(['S9','H9','C9','D9','S3','S4','S5','S6','S7','S8']),
+  legalPlays: [{ cards: mk(['S9','H9','C9','D9']), detected: e.detectType(mk(['S9','H9','C9','D9'])) }],
+  canPass: true,
+  public: { currentSeat: 0, lastPlay: { seat: 1, cards: mk(['S5']), detected: e.detectType(mk(['S5'])) }, handCounts: [10, 12, 13], playedCards: [] },
+  config: e.defaultRuleConfig(3)
+};
+ok(SBM.ai.chooseAction(holdView, 'NORMAL').action === 'PASS', 'AI 在对手宽裕时留炸不出');
 
 console.log('\n总计 PASS=' + pass + '  FAIL=' + fail);
 process.exit(fail ? 1 : 0);

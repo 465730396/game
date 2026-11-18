@@ -44,6 +44,12 @@ Page({
     if (s.vibration) audio.vibrate();
   },
 
+  // 清掉已读标记，下次进牌桌重新展示引导（也方便给别人演示）
+  onResetGuide: function () {
+    try { wx.removeStorageSync('sbm_guided'); } catch (e) {}
+    wx.showToast({ title: '下次进牌桌会再提示', icon: 'none' });
+  },
+
   onShareAppMessage: function () {
     return { title: '陕北捉老麻 · 设置', path: '/pages/index/index' };
   }

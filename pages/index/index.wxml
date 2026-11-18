@@ -23,6 +23,11 @@
     <view class="segmented">
       <view wx:for="{{levels}}" wx:key="value" class="seg {{aiLevel===item.value?'on':''}}" data-level="{{item.value}}" bindtap="onAiLevel">{{item.label}}</view>
     </view>
+    <view class="row-label">规则</view>
+    <view class="segmented">
+      <view wx:for="{{rules}}" wx:key="value" class="seg {{ruleMode===item.value?'on':''}}" data-value="{{item.value}}" bindtap="onRuleMode">{{item.label}}</view>
+    </view>
+    <view class="muted rule-hint">{{ruleMode==='SIMPLE' ? '简化档：关闭见K必出A、见A必出2、见2必出炸弹等强制规则' : '经典档：保留见K必出A、见A必出2、见2必出炸弹等强制规则'}}</view>
     <button class="btn btn-block start-btn" bindtap="onStartAi">开 始 对 局</button>
   </view>
 

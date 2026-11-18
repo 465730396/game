@@ -7,6 +7,7 @@
 .game-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20rpx; }
 .head-title { font-size: 30rpx; font-weight: 500; color: var(--gold); }
 .head-sub { font-size: 22rpx; color: var(--gold-dim); margin-top: 4rpx; }
+.head-round { font-size: 20rpx; color: var(--gold-dim); margin-top: 4rpx; }
 .icon-btn { background: rgba(232,197,122,0.12); color: var(--gold); border: 1rpx solid var(--gold-dim); }
 .head-actions { display: flex; gap: 12rpx; }
 
@@ -19,6 +20,13 @@
 .seat-name { font-size: 24rpx; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .seat-count { font-size: 22rpx; color: var(--gold-dim); margin-top: 6rpx; }
 .seat-declared { font-size: 20rpx; color: var(--red); margin-top: 4rpx; }
+.seat-last { font-size: 18rpx; color: var(--gold); margin-top: 4rpx; }
+.seat-line {
+  font-size: 18rpx; color: var(--ink); background: rgba(232,197,122,0.14);
+  border-radius: 8rpx; margin-top: 6rpx; padding: 2rpx 4rpx;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.seat.danger { border-color: var(--red); box-shadow: 0 0 0 2rpx rgba(192,69,60,0.35); }
 
 .play-zone {
   background: rgba(20,12,16,0.55); border-radius: 14rpx; padding: 16rpx; margin-bottom: 16rpx;
@@ -26,6 +34,27 @@
 }
 .play-label { font-size: 22rpx; color: var(--gold-dim); margin-bottom: 10rpx; }
 .play-empty { color: var(--gold-dim); font-size: 28rpx; line-height: 80rpx; }
+@keyframes pulseIn { 0% { transform: scale(0.94); opacity: 0.55; } 100% { transform: scale(1); opacity: 1; } }
+.play-zone.pulse { animation: pulseIn 240ms ease-out; }
+@keyframes shakeX {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8rpx); }
+  40% { transform: translateX(8rpx); }
+  60% { transform: translateX(-5rpx); }
+  80% { transform: translateX(5rpx); }
+}
+.game-page.shake { animation: shakeX 480ms ease-in-out; }
+
+.counter-scroll { width: 100%; white-space: nowrap; margin-bottom: 12rpx; }
+.counter-row { display: inline-flex; align-items: center; gap: 8rpx; }
+.counter-label { font-size: 20rpx; color: var(--gold-dim); margin-right: 4rpx; }
+.counter-chip {
+  display: inline-flex; align-items: center; gap: 4rpx;
+  padding: 2rpx 10rpx; border-radius: 8rpx; background: rgba(232,197,122,0.10);
+}
+.counter-rank { font-size: 20rpx; color: var(--gold-dim); }
+.counter-left { font-size: 20rpx; color: var(--ink); }
+.pass-reason { font-size: 22rpx; color: var(--red); text-align: center; margin-top: 10rpx; }
 
 .force-line { font-size: 22rpx; color: var(--red); text-align: center; margin-bottom: 10rpx; }
 .declared-line { font-size: 22rpx; color: var(--gold-dim); text-align: center; margin-bottom: 10rpx; }
@@ -67,3 +96,10 @@
 .mask-title { font-size: 36rpx; color: var(--gold); margin-bottom: 20rpx; }
 .mask-name { font-size: 40rpx; font-weight: 500; color: var(--ink); margin-bottom: 16rpx; }
 .mask-card .btn { margin-top: 32rpx; }
+.guide-card { text-align: left; }
+.guide-item { display: flex; gap: 12rpx; margin-bottom: 16rpx; }
+.guide-no {
+  width: 32rpx; height: 32rpx; line-height: 32rpx; text-align: center; flex: 0 0 auto;
+  border-radius: 50%; background: rgba(232,197,122,0.16); color: var(--gold); font-size: 20rpx;
+}
+.guide-txt { font-size: 24rpx; color: var(--ink); line-height: 1.55; }

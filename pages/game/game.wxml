@@ -1,4 +1,4 @@
-<view class="page game-page {{largeFont?'large-font':''}}">
+<view class="page game-page {{largeFont?'large-font':''}} {{shake?'shake':''}}">
   <!-- 背景特效 canvas -->
   <canvas type="2d" id="fx" class="fx-canvas"></canvas>
 
@@ -7,6 +7,7 @@
       <view class="head-meta">
         <view class="head-title">陕北捉老麻</view>
         <view class="head-sub">{{gameMeta}}</view>
+        <view class="head-round">{{roundText}}</view>
       </view>
       <view class="head-actions">
         <button class="icon-btn" size="mini" bindtap="onRestart">重开</button>
@@ -16,15 +17,17 @@
 
     <!-- 座位 -->
     <view class="seat-row">
-      <view wx:for="{{seats}}" wx:key="seat" class="seat {{item.active?'active':''}}">
+      <view wx:for="{{seats}}" wx:key="seat" class="seat {{item.active?'active':''}} {{item.danger?'danger':''}}">
         <view class="seat-name">{{item.name}}</view>
         <view class="seat-count">剩 {{item.count}} 张</view>
         <view wx:if="{{item.declared}}" class="seat-declared">报牌 {{item.declared}}</view>
+        <view wx:if="{{item.last}}" class="seat-last">上一手</view>
+        <view wx:if="{{item.line}}" class="seat-line">{{item.line}}</view>
       </view>
     </view>
 
     <!-- 上一手出牌 -->
-    <view class="play-zone">
+    <view class="play-zone {{playPulse?'pulse':''}}">
       <view class="play-label">{{playLabel}}</view>
       <view class="card-row small">
         <view wx:for="{{lastCards}}" wx:key="id" class="card small {{item.red?'red':'black'}}">
@@ -34,6 +37,17 @@
         <view wx:if="{{!lastCards.length}}" class="play-empty">—</view>
       </view>
     </view>
+
+    <!-- 记牌器：各点数还有多少张没出现 -->
+    <scroll-view wx:if="{{counter.length}}" scroll-x class="counter-scroll">
+      <view class="counter-row">
+        <text class="counter-label">未出</text>
+        <view wx:for="{{counter}}" wx:key="rank" class="counter-chip">
+          <text class="counter-rank">{{item.rank}}</text>
+          <text class="counter-left">{{item.left}}</text>
+        </view>
+      </view>
+    </scroll-view>
 
     <!-- 强制规则提示 -->
     <view wx:if="{{forceText}}" class="force-line">{{forceText}}</view>
@@ -63,6 +77,18 @@
       <button class="btn act" disabled="{{!canPlay}}" bindtap="onPlay">出牌</button>
       <button class="btn btn-outline act {{passEmphasis?'emph':''}}" disabled="{{!canPass}}" bindtap="onPass">不出</button>
       <button class="btn btn-outline act" disabled="{{!canHint}}" bindtap="onHint">提示</button>
+    </view>
+    <view wx:if="{{passReason}}" class="pass-reason">{{passReason}}</view>
+  </view>
+
+  <!-- 首局引导 -->
+  <view wx:if="{{guide}}" class="mask">
+    <view class="mask-card guide-card">
+      <view class="mask-title">先看三件事</view>
+      <view class="guide-item"><text class="guide-no">1</text><text class="guide-txt">持红桃 3 的人先出，第一手必须带红桃 3。</text></view>
+      <view class="guide-item"><text class="guide-no">2</text><text class="guide-txt">见 K 必出 A、见 A 必出 2、见 2 必出炸弹；被拦住时底部会说明是哪条规则。</text></view>
+      <view class="guide-item"><text class="guide-no">3</text><text class="guide-txt">5 局为一轮，炸弹让全桌输赢翻倍，最多 ×4。</text></view>
+      <button class="btn btn-block" bindtap="onGuideClose">知道了</button>
     </view>
   </view>
 

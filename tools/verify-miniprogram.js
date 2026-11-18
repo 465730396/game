@@ -102,5 +102,27 @@ pages.forEach(function (p) {
   ok(/large-font/.test(wxml), p + ' 支持大字模式');
 });
 
+console.log('\n=== 10. 设计增强（倍率 / 轮次 / 规则档 / 手感 / 分享） ===');
+const gameWxml = fs.readFileSync(path.join(root, 'pages/game/game.wxml'), 'utf8');
+const indexSrc = fs.readFileSync(path.join(root, 'pages/index/index.js'), 'utf8');
+const indexWxml = fs.readFileSync(path.join(root, 'pages/index/index.wxml'), 'utf8');
+const resultWxml = fs.readFileSync(path.join(root, 'pages/result/result.wxml'), 'utf8');
+ok(/bombMode: 'MULTIPLIER'/.test(bundleSrc), '计分改为炸弹倍率制');
+ok(/multiplier: multiplier/.test(bundleSrc), '结算返回倍率');
+ok(/totalDelta/.test(bundleSrc), '结算返回总变化（守恒校验用）');
+ok(/opt\.ruleMode === 'SIMPLE'/.test(bundleSrc), 'createGame 支持简化规则档');
+ok(/shouldHoldBomb/.test(bundleSrc), 'AI 有留炸判断');
+ok(/leaderSeatOf/.test(bundleSrc), 'AI 能识别领跑者');
+ok(/onRuleMode/.test(indexSrc) && /onRuleMode/.test(indexWxml), '首页可切换规则档');
+ok(/roundText/.test(gameSrc) && /roundIndex/.test(gameSrc), '牌桌显示轮次进度');
+ok(/buildCounter/.test(gameSrc) && /counter-chip/.test(gameWxml), '牌桌有记牌器');
+ok(/passReason/.test(gameSrc) && /pass-reason/.test(gameWxml), '不出被禁用时说明原因');
+ok(/seat-last/.test(gameWxml), '座位标记上一手');
+ok(/flashPlay/.test(gameSrc) && /shake/.test(gameWxml), '出牌动效与炸弹震屏');
+ok(/AI_LINES/.test(gameSrc), 'AI 有台词');
+ok(/paintPoster/.test(resultSrc) && /saveImageToPhotosAlbum/.test(resultSrc), '结算页可生成并保存战绩图');
+ok(/id="poster"/.test(resultWxml), '战绩图 canvas 已挂载');
+ok(/roundDone/.test(resultSrc) && /totals/.test(resultWxml), '结算页展示本轮累计');
+
 console.log('\n总计 PASS=' + pass + '  FAIL=' + fail);
 process.exit(fail ? 1 : 0);

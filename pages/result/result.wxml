@@ -9,7 +9,8 @@
     <view class="result-head">
       <view class="result-badge {{badgeClass}}">{{badgeText}}</view>
       <view class="result-title">{{title}}</view>
-      <view class="result-sub">娱乐积分 · {{ruleSetId}} · {{time}}</view>
+      <view class="result-sub">{{roundLabel ? roundLabel + ' · ' : ''}}娱乐积分 · {{time}}</view>
+      <view wx:if="{{multiText}}" class="result-multi">{{multiText}}</view>
     </view>
 
     <view class="panel">
@@ -25,13 +26,28 @@
         <view class="score-delta {{item.delta>0?'up':'down'}}">{{item.delta>0?'+':''}}{{item.delta}}</view>
       </view>
     </view>
+
+    <view class="panel" wx:if="{{totals.length}}">
+      <view class="panel-title">本轮累计（{{roundIndex}} / {{roundSize}} 局）</view>
+      <view wx:for="{{totals}}" wx:key="seat" class="total-row">
+        <view class="total-name">{{item.name}}</view>
+        <view class="total-val {{item.total>0?'up':'down'}}">{{item.total>0?'+':''}}{{item.total}}</view>
+      </view>
+      <view wx:if="{{roundDone}}" class="total-tip">本轮已结束，开新一轮重新计分</view>
+    </view>
   </block>
 
   <view class="btn-row" wx:if="{{!noData}}">
-    <button class="btn" bindtap="onAgain">再来一局</button>
+    <button class="btn" bindtap="onAgain">{{againLabel}}</button>
     <button class="btn btn-outline" bindtap="onHome">返回首页</button>
   </view>
   <button wx:else class="btn btn-block" bindtap="onHome">返回首页</button>
 
-  <button wx:if="{{!noData}}" class="btn btn-outline btn-block share-btn" open-type="share">分享给好友</button>
+  <block wx:if="{{!noData}}">
+    <button class="btn btn-outline btn-block share-btn" bindtap="onSavePoster">保存战绩图</button>
+    <button class="btn btn-outline btn-block share-btn" open-type="share">分享给好友</button>
+  </block>
+
+  <!-- 战绩图离屏画布 -->
+  <canvas type="2d" id="poster" class="poster-canvas"></canvas>
 </view>
