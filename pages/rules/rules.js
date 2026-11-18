@@ -1,7 +1,10 @@
 'use strict';
 
+var app = getApp();
+
 Page({
   data: {
+    largeFont: false,
     ruleTypes: [
       { name: '单张 / 对子 / 三张', desc: '按点数比大小' },
       { name: '三带一 / 三带二', desc: '按三张点数比' },
@@ -11,6 +14,10 @@ Page({
       { name: '炸弹', desc: '四张同点，压任何非炸' },
       { name: '天炸', desc: 'AAA / AAAA，最大牌型' }
     ]
+  },
+
+  onShow: function () {
+    this.setData({ largeFont: app.getSettings().largeFont !== false });
   },
 
   onShareAppMessage: function () {

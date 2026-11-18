@@ -8,6 +8,7 @@
 .head-title { font-size: 30rpx; font-weight: 500; color: var(--gold); }
 .head-sub { font-size: 22rpx; color: var(--gold-dim); margin-top: 4rpx; }
 .icon-btn { background: rgba(232,197,122,0.12); color: var(--gold); border: 1rpx solid var(--gold-dim); }
+.head-actions { display: flex; gap: 12rpx; }
 
 .seat-row { display: flex; gap: 12rpx; margin-bottom: 20rpx; }
 .seat {
@@ -27,6 +28,7 @@
 .play-empty { color: var(--gold-dim); font-size: 28rpx; line-height: 80rpx; }
 
 .force-line { font-size: 22rpx; color: var(--red); text-align: center; margin-bottom: 10rpx; }
+.declared-line { font-size: 22rpx; color: var(--gold-dim); text-align: center; margin-bottom: 10rpx; }
 .status-line { font-size: 26rpx; color: var(--gold); text-align: center; margin-bottom: 12rpx; }
 
 .hand-zone { flex: 1; background: rgba(20,12,16,0.4); border-radius: 14rpx; padding: 16rpx; margin-bottom: 16rpx; }
@@ -52,6 +54,7 @@
 
 .action-row { display: flex; gap: 16rpx; }
 .act { flex: 1; height: 84rpx; font-size: 28rpx; }
+.act.emph { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 2rpx rgba(232,197,122,0.35); }
 
 .mask {
   position: absolute; inset: 0; z-index: 10;

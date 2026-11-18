@@ -6,6 +6,7 @@ var audio = require('../../utils/audio.js');
 
 Page({
   data: {
+    largeFont: false,
     counts: [2, 3, 4],
     levels: [{ value: 'EASY', label: '简单' }, { value: 'NORMAL', label: '普通' }, { value: 'HARD', label: '困难' }],
     aiCount: 3,
@@ -17,14 +18,24 @@ Page({
 
   onShow: function () {
     audio.init();
-    var s = app.getSession();
-    this.setData({
-      hasSession: !!(s && s.game && s.game.status === 'PLAYING'),
-      sessionDesc: s ? ((s.game.players.length + ' 人 · ') + (s.hotseat ? '热座' : '人机')) : ''
-    });
-    // 首页也放 BGM（若设置开启）
     var st = app.getSettings();
+    var s = app.getSession();
+    // 快照可能因旧版本/异常写入而不完整，逐层校验，避免 s.game 缺失时直接抛错白屏
+    var alive = !!(s && s.game && s.game.players && s.game.players.length && s.game.status === 'PLAYING');
+    this.setData({
+      largeFont: st.largeFont !== false,
+      hasSession: alive,
+      sessionDesc: alive ? this.buildSessionDesc(s) : ''
+    });
     if (st.bgm) audio.startBgm(true); else audio.stopBgm();
+  },
+
+  // 续局卡片补上进度信息：轮到谁、各家剩牌，玩家一眼知道要不要续
+  buildSessionDesc: function (s) {
+    var g = s.game;
+    var who = g.players[g.currentSeat] ? g.players[g.currentSeat].name : '';
+    var counts = g.players.map(function (p) { return p.hand.length; }).join('/');
+    return g.players.length + ' 人 · ' + (s.hotseat ? '热座' : '人机') + ' · 轮到 ' + who + ' · 剩牌 ' + counts;
   },
 
   onHide: function () { audio.suspend(); },

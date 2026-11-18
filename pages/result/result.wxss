@@ -6,6 +6,7 @@
 }
 .result-badge.win { background: var(--gold); color: #2A1216; }
 .result-badge.lose { background: rgba(192,69,60,0.2); color: var(--red); border: 2rpx solid var(--red); }
+.result-badge.draw { background: rgba(232,197,122,0.14); color: var(--gold); border: 2rpx solid var(--gold-dim); font-size: 36rpx; }
 .result-title { font-size: 40rpx; font-weight: 500; color: var(--ink); }
 .result-sub { font-size: 22rpx; color: var(--gold-dim); margin-top: 12rpx; }
 .score-row {
@@ -18,7 +19,9 @@
   border-radius: 50%; background: rgba(232,197,122,0.15); color: var(--gold-dim); font-size: 24rpx;
 }
 .rank-chip.first { background: var(--gold); color: #2A1216; font-weight: 500; }
+.score-info { display: flex; flex-direction: column; }
 .score-name { font-size: 28rpx; color: var(--ink); }
+.score-sub { font-size: 22rpx; color: var(--gold-dim); margin-top: 4rpx; }
 .score-delta { font-size: 30rpx; font-weight: 500; }
 .score-delta.up { color: #E05A4E; }
 .score-delta.down { color: #6FB98A; }

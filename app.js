@@ -47,5 +47,11 @@ App({
   clearSession: function () {
     this.globalData.session = null;
     try { wx.removeStorageSync('sbm_session'); } catch (e) {}
+  },
+
+  // [RELEASE 2026-11-18] 主动退出未完成对局：记一次逃跑（只记次数、不计分），并清除快照避免重复统计。
+  recordEscape: function () {
+    this.clearSession();
+    return SBM.store.updateStats(false, 0, true);
   }
 });

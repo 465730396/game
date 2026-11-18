@@ -8,7 +8,10 @@
         <view class="head-title">陕北捉老麻</view>
         <view class="head-sub">{{gameMeta}}</view>
       </view>
-      <button class="icon-btn" size="mini" bindtap="onRestart">重开</button>
+      <view class="head-actions">
+        <button class="icon-btn" size="mini" bindtap="onRestart">重开</button>
+        <button class="icon-btn" size="mini" bindtap="onExit">退出</button>
+      </view>
     </view>
 
     <!-- 座位 -->
@@ -34,6 +37,8 @@
 
     <!-- 强制规则提示 -->
     <view wx:if="{{forceText}}" class="force-line">{{forceText}}</view>
+    <!-- 报牌提示 -->
+    <view wx:if="{{declaredText}}" class="declared-line">{{declaredText}}</view>
 
     <!-- 状态行 -->
     <view class="status-line">{{statusText}}</view>
@@ -56,7 +61,7 @@
     <!-- 操作按钮 -->
     <view class="action-row">
       <button class="btn act" disabled="{{!canPlay}}" bindtap="onPlay">出牌</button>
-      <button class="btn btn-outline act" disabled="{{!canPass}}" bindtap="onPass">不出</button>
+      <button class="btn btn-outline act {{passEmphasis?'emph':''}}" disabled="{{!canPass}}" bindtap="onPass">不出</button>
       <button class="btn btn-outline act" disabled="{{!canHint}}" bindtap="onHint">提示</button>
     </view>
   </view>

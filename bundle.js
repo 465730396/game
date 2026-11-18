@@ -726,7 +726,8 @@ function play(game, seat, cardIds) {
     ts: Date.now()
   });
   game.firstHandDone = true;
-  if (game.config.declareCards.enabled && player.hand.length <= game.config.declareCards.threshold) {
+  // [RELEASE 2026-11-18] 报牌只在还剩 1~threshold 张时成立；不改掉 0（已出完）会被误标"报牌 0"。
+  if (game.config.declareCards.enabled && player.hand.length > 0 && player.hand.length <= game.config.declareCards.threshold) {
     game.declared[seat] = player.hand.length;
   }
   if (player.hand.length === 0) {
@@ -844,10 +845,13 @@ function getStats() {
   return read('sbm_stats', { games: 0, wins: 0, escapes: 0, totalScore: 0 });
 }
 
-function updateStats(winner, delta) {
+// [RELEASE 2026-11-18] 增加 escaped 参数：规则承诺"逃跑只记次数不计分"，此前无任何写入路径。
+// 与 updateStats(false, 0, true) 配合统计主动退出；逃跑不改胜负、不加积分。
+function updateStats(winner, delta, escaped) {
   var stats = getStats();
   stats.games += 1;
   if (winner) stats.wins += 1;
+  if (escaped) stats.escapes = (stats.escapes || 0) + 1;
   stats.totalScore += delta || 0;
   write('sbm_stats', stats);
   return stats;
@@ -864,6 +868,14 @@ function getLocalLeaderboard() {
   return Object.keys(map).map(function (k) { return map[k]; }).sort(function (a, b) { return b.score - a.score; });
 }
 
+// [RELEASE 2026-11-18] 清空战绩不应连带清掉用户设置。新增 clearRecords，clearAll 保留用于彻底重置。
+function clearRecords() {
+  ['sbm_records', 'sbm_stats'].forEach(function (key) {
+    if (hasWx) { try { wx.removeStorageSync(key); } catch (e) {} }
+    else delete memory[key];
+  });
+}
+
 function clearAll() {
   ['sbm_settings', 'sbm_records', 'sbm_stats'].forEach(function (key) {
     if (hasWx) { try { wx.removeStorageSync(key); } catch (e) {} }
@@ -875,7 +887,7 @@ module.exports = {
   getSettings: getSettings, saveSettings: saveSettings,
   getRecords: getRecords, addRecord: addRecord,
   getStats: getStats, updateStats: updateStats,
-  getLocalLeaderboard: getLocalLeaderboard, clearAll: clearAll
+  getLocalLeaderboard: getLocalLeaderboard, clearRecords: clearRecords, clearAll: clearAll
 };
 
   });

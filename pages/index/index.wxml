@@ -1,4 +1,4 @@
-<view class="page index-page">
+<view class="page index-page {{largeFont?'large-font':''}}">
   <view class="hero">
     <view class="hero-title">陕北捉老麻</view>
     <view class="hero-sub">夜宴牌局 · 娱乐积分</view>

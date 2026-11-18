@@ -82,5 +82,18 @@ page {
 
 .muted { color: var(--gold-dim); font-size: 24rpx; }
 .center { text-align: center; }
+/* 大字模式：由各页根节点绑定 large-font 生效（设置页切换后重新进入即应用）。
+   旧实现只在牌桌生效，规则/统计/结算文字仍很小，与"放大牌面与规则文字"的承诺不符。 */
 .large-font .card-rank { font-size: 40rpx !important; }
+.large-font .card-suit { font-size: 34rpx !important; }
 .large-font .rule-p { font-size: 32rpx !important; }
+.large-font .panel-title { font-size: 34rpx !important; }
+.large-font .setting-name { font-size: 32rpx !important; }
+.large-font .setting-desc { font-size: 26rpx !important; }
+.large-font .stat-num { font-size: 44rpx !important; }
+.large-font .list-main { font-size: 30rpx !important; }
+.large-font .result-title { font-size: 46rpx !important; }
+.large-font .score-name { font-size: 32rpx !important; }
+.large-font .status-line { font-size: 30rpx !important; }
+.large-font .nav-label { font-size: 28rpx !important; }
+.large-font .btn { font-size: 32rpx !important; }

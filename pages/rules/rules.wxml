@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page {{largeFont?'large-font':''}}">
   <view class="panel">
     <view class="panel-title">基本信息</view>
     <view class="rule-p">2/3 人局用 48 张牌（去掉大小王、3 张 2、1 张 A），3 人每人 16 张、2 人每人 24 张；4 人局用 52 张，每人 13 张。持红桃 3 者先出，首手必须包含红桃 3。</view>

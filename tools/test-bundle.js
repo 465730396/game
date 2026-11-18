@@ -95,7 +95,29 @@ var g6 = gameWith(['SA','D2'], 16);
 g6.lastPlay = last(['SK']);
 ok(c.play(g6, 0, ['D2']).error === 'FORCED_TO_PLAY', '见K有A出2报强制出牌');
 
-section('7. 各人数 × 各难度整局模拟');
+section('7. 上线能力：逃跑统计 / 清空保留设置 / 报牌');
+var s = SBM.store;
+s.clearAll();
+s.updateStats(false, 0, true);
+var st1 = s.getStats();
+ok(st1.escapes === 1 && st1.games === 1, '逃跑计次数且计一局');
+ok(st1.wins === 0 && st1.totalScore === 0, '逃跑不计胜、不计分');
+s.updateStats(true, 6);
+var st2 = s.getStats();
+ok(st2.escapes === 1 && st2.games === 2 && st2.wins === 1 && st2.totalScore === 6, '正常结算累计正确');
+s.saveSettings({ bgm: true, dialect: false, largeFont: true, vibration: false });
+s.addRecord({ name: '测试', delta: 3, rank: 1, winner: true, mode: 'AI', createdAt: Date.now() });
+s.clearRecords();
+ok(s.getRecords().length === 0 && s.getStats().games === 0, 'clearRecords 清空战绩与统计');
+ok(s.getSettings().bgm === true, 'clearRecords 保留用户设置');
+var g7 = gameWith(['S7','H7','C7','S9'], 21);
+c.play(g7, 0, ['S7','H7','C7']);
+ok(g7.declared[0] === 1, '剩 1 张触发报牌');
+var g8 = gameWith(['S7','H7','C7'], 22);
+c.play(g8, 0, ['S7','H7','C7']);
+ok(!Object.prototype.hasOwnProperty.call(g8.declared, 0), '出完不标记报牌 0');
+
+section('8. 各人数 × 各难度整局模拟');
 [2, 3, 4].forEach(function (n) {
   ['EASY', 'NORMAL', 'HARD'].forEach(function (lv) {
     var finished = 0;

@@ -1,4 +1,4 @@
-<view class="page">
+<view class="page {{largeFont?'large-font':''}}">
   <view class="panel">
     <view class="panel-title">我的战绩</view>
     <view class="stat-grid">
@@ -19,10 +19,13 @@
   </view>
 
   <view class="panel">
-    <view class="panel-title">最近对局</view>
+    <view class="panel-title">最近对局<text wx:if="{{total}}" class="muted"> · 共 {{total}} 局</text></view>
     <view wx:if="{{!records.length}}" class="empty">暂无记录</view>
     <view wx:for="{{records}}" wx:key="index" class="list-row">
-      <view class="list-main">{{item.winner?'胜':'负'}} · {{item.modeText}}</view>
+      <view class="list-main">
+        <view class="list-title">{{item.resultText}} · {{item.modeText}}<text wx:if="{{item.rankText}}" class="muted"> · {{item.rankText}}</text></view>
+        <view class="list-sub">{{item.timeText}}</view>
+      </view>
       <view class="list-score {{item.delta>0?'up':'down'}}">{{item.delta>0?'+':''}}{{item.delta}}</view>
     </view>
   </view>

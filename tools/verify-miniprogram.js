@@ -80,5 +80,27 @@ const entryJs = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
 ok(/require\('\.\/bundle\.js'\)/.test(entryJs), '小程序入口直接 require 根 bundle.js');
 ok(!/core\/bundle\.js|sync-core/.test(entryJs), '入口无残留 core/ 副本引用');
 
+console.log('\n=== 9. 上线能力检查 ===');
+const gameSrc = fs.readFileSync(path.join(root, 'pages/game/game.js'), 'utf8');
+ok(/onExit/.test(gameSrc), '牌桌有退出入口');
+ok(/recordEscape/.test(gameSrc), '退出记为逃跑');
+ok(/autoSelectFirstHand/.test(gameSrc), '首手自动选中红桃3');
+ok(/if \(this\.finished\) return;/.test(gameSrc), '结算防重复写入');
+const appSrc = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+ok(/recordEscape/.test(appSrc), 'app 暴露 recordEscape');
+const bundleSrc = fs.readFileSync(path.join(root, 'bundle.js'), 'utf8');
+ok(/function clearRecords/.test(bundleSrc) && /clearRecords: clearRecords/.test(bundleSrc), 'store 提供 clearRecords');
+ok(/if \(escaped\)/.test(bundleSrc), 'updateStats 支持逃跑计数');
+const resultSrc = fs.readFileSync(path.join(root, 'pages/result/result.js'), 'utf8');
+ok(/reLaunch/.test(resultSrc), '结算返回首页用 reLaunch');
+ok(/badgeText/.test(resultSrc), '结算角标区分胜负/赢家');
+ok(/r\.level/.test(resultSrc) && /r\.mode/.test(resultSrc), '再来一局沿用原参数');
+const statsSrc = fs.readFileSync(path.join(root, 'pages/stats/stats.js'), 'utf8');
+ok(/clearRecords/.test(statsSrc) && !/clearAll\(\)/.test(statsSrc), '清空战绩不影响设置');
+pages.forEach(function (p) {
+  const wxml = fs.readFileSync(path.join(root, p + '.wxml'), 'utf8');
+  ok(/large-font/.test(wxml), p + ' 支持大字模式');
+});
+
 console.log('\n总计 PASS=' + pass + '  FAIL=' + fail);
 process.exit(fail ? 1 : 0);

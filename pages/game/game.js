@@ -29,8 +29,8 @@ function cardVM(c, selected) {
 Page({
   data: {
     gameMeta: '', seats: [], lastCards: [], playLabel: '',
-    forceText: '', statusText: '', hand: [], handTitle: '我的手牌',
-    canPlay: false, canPass: false, canHint: false,
+    forceText: '', declaredText: '', statusText: '', hand: [], handTitle: '我的手牌',
+    canPlay: false, canPass: false, canHint: false, passEmphasis: false,
     handoff: false, handoffName: '', largeFont: false
   },
 
@@ -71,6 +71,21 @@ Page({
     var st = app.getSettings();
     if (st.bgm) audio.startBgm(true);
     audio.vibrate();
+    this.finished = false;
+    // [RELEASE 2026-11-18] 首手自动选中红桃3，省去玩家在 16~24 张牌里找牌；同时立即存快照，
+    // 避免"看到手牌但没出牌就退出"时续局入口消失。
+    this.autoSelectFirstHand();
+    this.saveSnapshot();
+  },
+
+  // 首次出牌必须包含红桃3：若当前该真人出牌，先把红桃3选上（玩家仍可增删）。
+  autoSelectFirstHand: function () {
+    var g = this.game;
+    if (!g || g.firstHandDone) return;
+    var p = g.players[this.activeSeat];
+    if (!p || p.isAI || g.currentSeat !== this.activeSeat) return;
+    var h3 = p.hand.filter(function (c) { return c.id === 'H3'; })[0];
+    if (h3) this.selected = [h3.id];
   },
 
   onReady: function () { try { this.fx.mount(); } catch (e) {} },
@@ -96,6 +111,8 @@ Page({
     this.clearAiTimer();
     audio.suspend();
     this.fx.stop();
+    // [RELEASE 2026-11-18] 系统返回键离开牌桌时也保留对局，保证"继续对局"入口可用。
+    if (this.game && this.game.status === 'PLAYING') this.saveSnapshot();
   },
 
   onShareAppMessage: function () {
@@ -151,9 +168,26 @@ Page({
     }, this);
 
     var myTurn = !hidden && view.public.currentSeat === this.activeSeat;
-    var st = hidden ? '请交接设备' :
-      (this.hotseat ? '轮到 ' + g.players[view.public.currentSeat].name :
-        (view.public.currentSeat === 0 ? '轮到你出牌' : g.players[view.public.currentSeat].name + ' 思考中…'));
+    // [RELEASE 2026-11-18] 状态行覆盖三种真实处境：等别人、无牌可压、首手限制。
+    // 旧实现"无牌可压"时仍显示"轮到你出牌"，玩家会盯着灰掉的出牌键不知道要按"不出"。
+    var st;
+    if (hidden) {
+      st = '请交接设备';
+    } else if (!myTurn) {
+      st = this.hotseat ? ('轮到 ' + g.players[view.public.currentSeat].name)
+        : (g.players[view.public.currentSeat].name + ' 思考中…');
+    } else if (!view.legalPlays.length) {
+      st = view.canPass ? '无牌可压，请点「不出」' : '轮到你出牌';
+    } else if (!g.firstHandDone) {
+      st = '第一手必须包含红桃3';
+    } else {
+      st = this.hotseat ? ('轮到 ' + g.players[this.activeSeat].name + ' 出牌') : '轮到你出牌';
+    }
+
+    // 报牌提示：只在剩余 1~3 张时出现（引擎已过滤 0）
+    var dc = view.public.declaredCounts;
+    var declaredText = Object.keys(dc).filter(function (k) { return dc[k] > 0; })
+      .map(function (k) { return g.players[k].name + ' 报牌 ' + dc[k] + ' 张'; }).join(' · ');
 
     this.setData({
       gameMeta: (g.players.length + ' 人 · ') + (this.hotseat ? '同屏热座' :
@@ -162,11 +196,14 @@ Page({
       lastCards: lastCards,
       playLabel: playLabel,
       forceText: hidden ? '' : view.public.forceFlags.map(function (f) { return FLAG_TEXT[f] || f; }).join(' · '),
+      declaredText: hidden ? '' : declaredText,
       statusText: st,
       hand: hand,
       handTitle: hidden ? '手牌已遮挡' : (this.hotseat ? g.players[this.activeSeat].name + ' 的手牌' : '我的手牌'),
       canPlay: myTurn && view.legalPlays.length > 0 && this.selected.length > 0,
       canPass: myTurn && view.canPass,
+      // 无牌可压时把"不出"做成唯一可点的动作，视觉上引导过去
+      passEmphasis: myTurn && view.canPass && view.legalPlays.length === 0,
       canHint: myTurn && view.legalPlays.length > 0
     });
 
@@ -177,6 +214,13 @@ Page({
   },
 
   onCardTap: function (e) {
+    if (this.data.handoff) return;
+    // [RELEASE 2026-11-18] 非本人回合点牌不再静默无反应，给出明确提示，避免"点了没反应"的困惑。
+    var view = controller.getView(this.game, this.activeSeat);
+    if (view.public.currentSeat !== this.activeSeat) {
+      wx.showToast({ title: this.game.players[view.public.currentSeat].name + ' 出牌中', icon: 'none' });
+      return;
+    }
     var id = e.currentTarget.dataset.id;
     var i = this.selected.indexOf(id);
     if (i >= 0) this.selected.splice(i, 1); else this.selected.push(id);
@@ -200,7 +244,7 @@ Page({
 
   onHint: function () {
     var view = controller.getView(this.game, this.activeSeat);
-    if (!view.legalPlays.length) { wx.showToast({ title: '没有能压的牌，请选择不出', icon: 'none' }); return; }
+    if (!view.legalPlays.length) { wx.showToast({ title: '没有能压的牌，请点「不出」', icon: 'none' }); return; }
     this.selected = view.legalPlays[0].cards.map(function (c) { return c.id; });
     this.render();
     wx.showToast({ title: '已选中：' + view.legalPlays[0].detected.label, icon: 'none' });
@@ -243,10 +287,14 @@ Page({
   },
 
   finishGame: function () {
+    // [RELEASE 2026-11-18] 防重复结算：AI 定时器与出牌回调都可能触发，重复执行会重复写战绩。
+    if (this.finished) return;
+    this.finished = true;
     this.clearAiTimer();
     app.clearSession();
     var g = this.game;
-    var s = g.settlement;
+    var s = g && g.settlement;
+    if (!g || !s) { wx.reLaunch({ url: '/pages/index/index' }); return; }
     var won = g.winnerSeat === 0;
 
     s.scores.forEach(function (row) {
@@ -268,7 +316,10 @@ Page({
     app.globalData.lastResult = {
       scores: s.scores.slice().sort(function (a, b) { return a.rank - b.rank; }),
       winnerName: g.players[g.winnerSeat].name,
+      winnerSeat: g.winnerSeat,
       won: won, hotseat: this.hotseat,
+      // [RELEASE 2026-11-18] 记录本局参数，"再来一局"沿用原模式/人数/难度，不再回落成 3 人普通。
+      mode: this.mode, level: this.level, count: this.count,
       ruleSetId: g.config.ruleSetId,
       time: new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
     };
@@ -286,14 +337,43 @@ Page({
       success: function (r) {
         if (!r.confirm) return;
         self.clearAiTimer();
+        self.finished = false;
         self.game = self.createGame();
         self.activeSeat = self.game.currentSeat;
         self.selected = [];
         self.lastSeat = null;
-        self.setData({ handoff: false });
+        // 热座重开同样要交接设备，避免上一位玩家的视线残留
+        self.setData({
+          handoff: !!self.hotseat,
+          handoffName: self.hotseat ? self.game.players[self.activeSeat].name : ''
+        });
+        self.autoSelectFirstHand();
         self.render();
         self.saveSnapshot();
         self.scheduleAI();
+      }
+    });
+  },
+
+  // [RELEASE 2026-11-18] 主动退出：补上此前完全缺失的出口。
+  // 规则承诺"逃跑只记次数不计分"，此处按承诺记一次逃跑并放弃本局。
+  onExit: function () {
+    var self = this;
+    if (!this.game || this.game.status !== 'PLAYING') {
+      wx.reLaunch({ url: '/pages/index/index' });
+      return;
+    }
+    wx.showModal({
+      title: '退出对局',
+      content: '退出将记为一次逃跑（只记次数、不计分），并放弃当前这局。',
+      confirmText: '退出',
+      cancelText: '继续打',
+      success: function (r) {
+        if (!r.confirm) return;
+        self.clearAiTimer();
+        app.recordEscape();
+        self.game = null;   // 阻止 onUnload 重新写入快照
+        wx.reLaunch({ url: '/pages/index/index' });
       }
     });
   }
