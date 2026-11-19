@@ -1,18 +1,156 @@
-.index-page { padding-top: 40rpx; }
-.hero { text-align: center; margin-bottom: 40rpx; }
-.hero-title { font-size: 56rpx; font-weight: 500; color: var(--gold); letter-spacing: 6rpx; }
-.hero-sub { font-size: 26rpx; color: var(--gold-dim); margin-top: 12rpx; letter-spacing: 4rpx; }
-.btn-row { display: flex; gap: 20rpx; margin-top: 20rpx; }
-.btn-row .btn { flex: 1; }
-.start-btn { margin-top: 32rpx; }
-.rule-hint { font-size: 22rpx; line-height: 1.5; margin-top: 12rpx; }
-.nav-grid { display: flex; gap: 16rpx; }
+.index-page { padding-top: 44rpx; }
+
+/* ---------- 品牌区 ---------- */
+.brand { display: flex; align-items: center; margin-bottom: 30rpx; padding: 0 6rpx; }
+.brand-seal {
+  width: 92rpx; height: 92rpx; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14rpx;
+  background-image: linear-gradient(160deg, #C0332A 0%, #8E1F1B 100%);
+  border: 2rpx solid rgba(235, 203, 132, 0.75);
+  box-shadow: 0 8rpx 20rpx rgba(140, 30, 26, 0.5), inset 0 0 16rpx rgba(0, 0, 0, 0.35);
+  transform: rotate(-5deg);
+}
+.seal-txt {
+  font-size: 50rpx; color: #FFEFD8; font-weight: 700;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+}
+.brand-main { flex: 1; min-width: 0; padding-left: 22rpx; }
+.brand-title {
+  font-size: 50rpx; font-weight: 700; color: var(--gold); letter-spacing: 4rpx;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  text-shadow: 0 2rpx 10rpx rgba(235, 203, 132, 0.28);
+}
+.brand-sub { font-size: 20rpx; color: var(--gold-dim); letter-spacing: 3rpx; margin-top: 6rpx; }
+.brand-stat { flex: 0 0 auto; text-align: right; padding-left: 16rpx; }
+.stat-num {
+  font-size: 38rpx; font-weight: 800; color: var(--ink); line-height: 1;
+  font-family: "DIN Alternate", "Helvetica Neue", sans-serif;
+}
+.stat-pct { font-size: 20rpx; color: var(--gold-dim); margin-left: 2rpx; font-weight: 500; }
+.stat-cap { font-size: 19rpx; color: var(--gold-dim); margin-top: 6rpx; letter-spacing: 2rpx; }
+
+/* ---------- 续局条带 ---------- */
+.resume {
+  position: relative;
+  z-index: 2;
+  display: flex; align-items: center; gap: 16rpx;
+  margin: 26rpx 0 22rpx;
+  padding: 24rpx 22rpx;
+  border-radius: 22rpx;
+  background-image: linear-gradient(100deg, #5E1B18 0%, #401518 55%, #2A1012 100%);
+  border: 1rpx solid rgba(235, 203, 132, 0.38);
+  box-shadow: 0 16rpx 32rpx rgba(0, 0, 0, 0.46), inset 0 0 30rpx rgba(0, 0, 0, 0.35);
+}
+/* 标签做成卡内竖排小印：用 column 排列而非 writing-mode，
+   后者在部分 Android WebView 上不生效，会把三个字挤成横向溢出 */
+.resume-tag {
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8rpx 6rpx;
+  border-radius: 8rpx;
+  background-image: linear-gradient(180deg, #DE5A4C, #A93228);
+  box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.42);
+}
+.resume-tag text {
+  font-size: 19rpx; line-height: 1.35; color: #FFF3E4; letter-spacing: 0;
+}
+.resume-body { flex: 1; min-width: 0; }
+.resume-title {
+  font-size: 30rpx; color: var(--gold); font-weight: 600; letter-spacing: 1rpx;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+}
+.resume-desc {
+  font-size: 19rpx; color: var(--ink-dim); margin-top: 6rpx; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.resume-drop { flex: 0 0 auto; font-size: 23rpx; color: var(--ink-dim); padding: 12rpx 10rpx; }
+.resume-go {
+  flex: 0 0 auto; width: 134rpx; height: 68rpx; line-height: 68rpx;
+  padding: 0; border-radius: 12rpx; border: none;
+  background-image: linear-gradient(180deg, #F3D792, #C79A4E);
+  color: #3A1B12; font-size: 27rpx; font-weight: 700; letter-spacing: 2rpx;
+  box-shadow: 0 5rpx 0 #6E4A1E, inset 0 1rpx 0 rgba(255, 255, 255, 0.55);
+}
+.resume-go::after { border: none; }
+
+/* ---------- 主卡：开局 ---------- */
+.board-head { display: flex; align-items: baseline; justify-content: space-between; }
+.board-title {
+  font-size: 34rpx; font-weight: 700; color: var(--ink); letter-spacing: 2rpx;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+}
+.board-sub { font-size: 20rpx; color: var(--gold-dim); letter-spacing: 1rpx; }
+
+.opt { display: flex; align-items: center; gap: 18rpx; margin-top: 18rpx; }
+.opt-label { width: 62rpx; flex: 0 0 auto; font-size: 24rpx; color: var(--ink-dim); letter-spacing: 1rpx; }
+.opt .pill-group { flex: 1; }
+.opt-hint {
+  font-size: 20rpx; color: var(--gold-dim); line-height: 1.6;
+  margin-top: 18rpx; padding-left: 80rpx;
+}
+.btn-start { margin-top: 26rpx; height: 96rpx; font-size: 33rpx; letter-spacing: 6rpx; }
+
+/* ---------- 每日挑战 ---------- */
+.daily {
+  display: flex; align-items: center; gap: 20rpx;
+  margin-bottom: 22rpx; padding: 24rpx;
+  border-radius: 24rpx;
+  background-image: linear-gradient(135deg, rgba(235, 203, 132, 0.16) 0%, rgba(169, 50, 40, 0.22) 52%, rgba(36, 19, 22, 0.92) 100%);
+  border: 1rpx solid rgba(235, 203, 132, 0.32);
+  box-shadow: 0 16rpx 34rpx rgba(0, 0, 0, 0.4), inset 0 1rpx 0 rgba(255, 226, 170, 0.14);
+}
+.daily-date {
+  flex: 0 0 auto; width: 92rpx; padding: 10rpx 0; text-align: center;
+  border-radius: 14rpx;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1rpx solid rgba(235, 203, 132, 0.24);
+}
+.daily-d {
+  font-size: 42rpx; font-weight: 800; color: var(--gold); line-height: 1;
+  font-family: "DIN Alternate", "Helvetica Neue", sans-serif;
+}
+.daily-m { font-size: 18rpx; color: var(--gold-dim); margin-top: 6rpx; letter-spacing: 1rpx; }
+.daily-body { flex: 1; min-width: 0; }
+.daily-title { display: flex; align-items: center; font-size: 29rpx; color: var(--ink); font-weight: 600; letter-spacing: 1rpx; }
+.daily-done {
+  margin-left: 12rpx; padding: 2rpx 8rpx; border-radius: 6rpx;
+  font-size: 18rpx; font-weight: 400; color: #DFF3E6;
+  background: rgba(111, 185, 138, 0.26); border: 1rpx solid rgba(111, 185, 138, 0.55);
+}
+.daily-desc { font-size: 21rpx; color: var(--ink-dim); margin-top: 8rpx; line-height: 1.45; }
+.daily-cta {
+  flex: 0 0 auto; padding: 16rpx 26rpx; border-radius: 12rpx;
+  font-size: 24rpx; font-weight: 700; color: #3A1B12; letter-spacing: 2rpx;
+  background-image: linear-gradient(180deg, #F3D792, #C79A4E);
+  box-shadow: 0 5rpx 0 #6E4A1E, inset 0 1rpx 0 rgba(255, 255, 255, 0.55);
+}
+
+/* ---------- 同屏热座 ---------- */
+.hotseat { padding: 26rpx 28rpx; }
+.hotseat-head { display: flex; align-items: baseline; gap: 14rpx; margin-bottom: 18rpx; }
+.hotseat-title {
+  font-size: 29rpx; color: var(--gold); font-weight: 600; letter-spacing: 2rpx;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+}
+.hotseat-desc { font-size: 20rpx; color: var(--gold-dim); }
+.hotseat-row { display: flex; align-items: center; gap: 16rpx; }
+.hotseat-pills { flex: 1; }
+.hotseat-btn { flex: 0 0 auto; width: 168rpx; height: 78rpx; font-size: 27rpx; letter-spacing: 4rpx; }
+
+/* ---------- 底部导航 ---------- */
+.nav-grid { display: flex; gap: 16rpx; margin-top: 6rpx; }
 .nav-item {
-  flex: 1; background: var(--bg-panel); border: 1rpx solid rgba(232,197,122,0.18);
-  border-radius: 16rpx; text-align: center; padding: 28rpx 0;
+  flex: 1; text-align: center; padding: 22rpx 0;
+  border-radius: 20rpx;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1rpx solid rgba(235, 203, 132, 0.14);
 }
-.nav-icon {
-  width: 72rpx; height: 72rpx; line-height: 72rpx; margin: 0 auto 12rpx;
-  border-radius: 50%; border: 2rpx solid var(--gold-dim); color: var(--gold); font-size: 34rpx;
+.nav-glyph {
+  width: 58rpx; height: 58rpx; line-height: 58rpx; margin: 0 auto 10rpx;
+  border-radius: 50%;
+  border: 1rpx solid rgba(235, 203, 132, 0.45);
+  color: var(--gold); font-size: 28rpx;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
 }
-.nav-label { font-size: 24rpx; color: var(--ink); }
+.nav-label { font-size: 22rpx; color: var(--ink-dim); letter-spacing: 2rpx; }

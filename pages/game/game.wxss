@@ -1,41 +1,128 @@
 .game-page { padding: 0; position: relative; overflow: hidden; }
 .fx-canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
 .game-content {
-  position: relative; z-index: 1; padding: 20rpx 20rpx calc(32rpx + env(safe-area-inset-bottom));
-  min-height: 100vh; box-sizing: border-box; display: flex; flex-direction: column;
+  position: relative; z-index: 1;
+  padding: 16rpx 20rpx calc(28rpx + env(safe-area-inset-bottom));
+  min-height: 100vh; box-sizing: border-box;
+  display: flex; flex-direction: column;
 }
-.game-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20rpx; }
-.head-title { font-size: 30rpx; font-weight: 500; color: var(--gold); }
-.head-sub { font-size: 22rpx; color: var(--gold-dim); margin-top: 4rpx; }
-.head-round { font-size: 20rpx; color: var(--gold-dim); margin-top: 4rpx; }
-.icon-btn { background: rgba(232,197,122,0.12); color: var(--gold); border: 1rpx solid var(--gold-dim); }
-.head-actions { display: flex; gap: 12rpx; }
 
-.seat-row { display: flex; gap: 12rpx; margin-bottom: 20rpx; }
-.seat {
-  flex: 1; background: rgba(46,26,28,0.85); border: 1rpx solid rgba(232,197,122,0.18);
-  border-radius: 14rpx; padding: 14rpx 8rpx; text-align: center;
+/* ---------- 顶部 ---------- */
+.game-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14rpx; padding: 0 4rpx; }
+.head-meta { font-size: 20rpx; color: var(--gold-dim); letter-spacing: 1rpx; }
+.head-round {
+  font-size: 27rpx; color: var(--gold); font-weight: 600; margin-top: 4rpx;
+  letter-spacing: 1rpx;
+  font-family: "Songti SC", "STSong", "SimSun", serif;
+  text-shadow: 0 0 14rpx rgba(235, 203, 132, 0.35);
 }
-.seat.active { border-color: var(--gold); background: rgba(232,197,122,0.12); }
-.seat-name { font-size: 24rpx; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.seat-count { font-size: 22rpx; color: var(--gold-dim); margin-top: 6rpx; }
-.seat-declared { font-size: 20rpx; color: var(--red); margin-top: 4rpx; }
-.seat-last { font-size: 18rpx; color: var(--gold); margin-top: 4rpx; }
-.seat-line {
-  font-size: 18rpx; color: var(--ink); background: rgba(232,197,122,0.14);
-  border-radius: 8rpx; margin-top: 6rpx; padding: 2rpx 4rpx;
+.head-actions { display: flex; gap: 12rpx; }
+.ghost-btn {
+  padding: 10rpx 22rpx; border-radius: 999rpx;
+  font-size: 22rpx; color: var(--gold); letter-spacing: 1rpx;
+  border: 1rpx solid rgba(235, 203, 132, 0.34);
+  background: rgba(0, 0, 0, 0.28);
+}
+.ghost-btn:active { background: rgba(235, 203, 132, 0.14); }
+
+/* ---------- 座位 ---------- */
+.seat-row { display: flex; gap: 12rpx; margin-bottom: 14rpx; }
+.seat {
+  flex: 1; min-width: 0;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 14rpx 8rpx 12rpx;
+  border-radius: 20rpx;
+  background: rgba(20, 12, 14, 0.55);
+  border: 1rpx solid rgba(235, 203, 132, 0.10);
+  box-shadow: inset 0 1rpx 0 rgba(255, 226, 170, 0.06);
+}
+.seat.active {
+  border-color: rgba(235, 203, 132, 0.62);
+  background-image: linear-gradient(180deg, rgba(235, 203, 132, 0.14), rgba(235, 203, 132, 0.03));
+  box-shadow: 0 0 26rpx rgba(235, 203, 132, 0.22), inset 0 1rpx 0 rgba(255, 226, 170, 0.16);
+}
+.seat.danger { border-color: rgba(222, 90, 76, 0.55); }
+.seat-avatar {
+  position: relative;
+  width: 78rpx; height: 78rpx; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background-image: radial-gradient(circle at 34% 26%, #5C3331 0%, #2C1719 72%);
+  border: 1rpx solid rgba(235, 203, 132, 0.34);
+}
+.seat.active .seat-avatar { border-color: var(--gold); box-shadow: 0 0 18rpx rgba(235, 203, 132, 0.55); }
+.seat.danger .seat-avatar { border-color: var(--red-2); animation: dangerPulse 1.3s ease-in-out infinite; }
+@keyframes dangerPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(222, 90, 76, 0); }
+  50% { box-shadow: 0 0 22rpx rgba(222, 90, 76, 0.75); }
+}
+.seat-ini { font-size: 32rpx; color: var(--gold); font-family: "Songti SC", "STSong", serif; }
+.seat-count {
+  position: absolute; right: -12rpx; bottom: -8rpx;
+  min-width: 36rpx; height: 36rpx; line-height: 36rpx; padding: 0 6rpx;
+  border-radius: 999rpx; text-align: center;
+  background-image: linear-gradient(180deg, #F0D190, #C79A4E);
+  color: #3A1B12; font-size: 20rpx; font-weight: 800;
+  box-shadow: 0 3rpx 8rpx rgba(0, 0, 0, 0.5);
+  font-family: "DIN Alternate", "Helvetica Neue", sans-serif;
+}
+.seat-name {
+  margin-top: 10rpx; max-width: 100%;
+  font-size: 23rpx; color: var(--ink);
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
-.seat.danger { border-color: var(--red); box-shadow: 0 0 0 2rpx rgba(192,69,60,0.35); }
-
-.play-zone {
-  background: rgba(20,12,16,0.55); border-radius: 14rpx; padding: 16rpx; margin-bottom: 16rpx;
-  min-height: 130rpx;
+.seat-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6rpx; margin-top: 4rpx; }
+.seat-last, .seat-declared, .seat-warn {
+  font-size: 17rpx; padding: 2rpx 8rpx; border-radius: 6rpx; line-height: 1.4;
 }
-.play-label { font-size: 22rpx; color: var(--gold-dim); margin-bottom: 10rpx; }
-.play-empty { color: var(--gold-dim); font-size: 28rpx; line-height: 80rpx; }
-@keyframes pulseIn { 0% { transform: scale(0.94); opacity: 0.55; } 100% { transform: scale(1); opacity: 1; } }
-.play-zone.pulse { animation: pulseIn 240ms ease-out; }
+.seat-last { color: #2A1216; background: rgba(235, 203, 132, 0.85); }
+.seat-declared { color: #FFE1D9; background: rgba(169, 50, 40, 0.75); }
+.seat-warn { color: #FFD9D3; border: 1rpx solid rgba(222, 90, 76, 0.75); }
+.seat-line {
+  margin-top: 6rpx; max-width: 100%;
+  font-size: 17rpx; color: var(--ink-dim);
+  padding: 2rpx 8rpx; border-radius: 6rpx;
+  background: rgba(235, 203, 132, 0.10);
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+
+/* ---------- 出牌区（毡面） ---------- */
+.table {
+  position: relative;
+  flex: 1;
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  min-height: 300rpx;
+  padding: 44rpx 18rpx 24rpx;
+  margin-bottom: 12rpx;
+  border-radius: 22rpx;
+  /* 毡面不做成"实心黑盒"：只留一层中心聚光 + 极淡纹理，让背后的夜空与山峦透上来。
+     牌桌的空旷应当是"场地"，不是"没画完的框"。 */
+  background-image:
+    radial-gradient(78% 62% at 50% 46%, rgba(235, 203, 132, 0.10) 0%, rgba(235, 203, 132, 0.02) 46%, rgba(0, 0, 0, 0) 74%),
+    radial-gradient(circle at 50% 50%, rgba(235, 203, 132, 0.05) 1rpx, rgba(0, 0, 0, 0) 1rpx);
+  background-size: auto, 22rpx 22rpx;
+  border: none;
+  box-shadow: none;
+}
+.table-label {
+  position: absolute; left: 18rpx; top: 14rpx;
+  display: inline-block;
+  font-size: 20rpx; color: var(--gold-dim); letter-spacing: 1rpx;
+  padding: 3rpx 12rpx; border-radius: 6rpx;
+  background: rgba(0, 0, 0, 0.32); border: 1rpx solid rgba(235, 203, 132, 0.14);
+}
+.table-empty {
+  font-size: 26rpx; color: rgba(200, 178, 150, 0.55); letter-spacing: 10rpx;
+  padding: 24rpx 0 24rpx 10rpx;
+  text-shadow: 0 0 20rpx rgba(235, 203, 132, 0.16);
+}
+.table-cards { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10rpx; width: 100%; }
+.card.played { width: 82rpx; height: 114rpx; border-radius: 10rpx; }
+.card.played .card-rank { font-size: 30rpx; left: 7rpx; top: 5rpx; }
+.card.played .card-suit { font-size: 22rpx; left: 8rpx; top: 40rpx; }
+.card.played .card-mark { font-size: 50rpx; right: 3rpx; bottom: 0; opacity: 0.11; }
+
+@keyframes pulseIn { 0% { transform: scale(0.95); opacity: 0.6; } 100% { transform: scale(1); opacity: 1; } }
+.table.pulse { animation: pulseIn 240ms ease-out; }
 @keyframes shakeX {
   0%, 100% { transform: translateX(0); }
   20% { transform: translateX(-8rpx); }
@@ -45,61 +132,86 @@
 }
 .game-page.shake { animation: shakeX 480ms ease-in-out; }
 
-.counter-scroll { width: 100%; white-space: nowrap; margin-bottom: 12rpx; }
+/* ---------- 记牌器 ---------- */
+.counter-scroll { width: 100%; white-space: nowrap; margin-bottom: 10rpx; }
 .counter-row { display: inline-flex; align-items: center; gap: 8rpx; }
-.counter-label { font-size: 20rpx; color: var(--gold-dim); margin-right: 4rpx; }
+.counter-label { font-size: 19rpx; color: var(--gold-dim); margin-right: 2rpx; letter-spacing: 1rpx; }
 .counter-chip {
-  display: inline-flex; align-items: center; gap: 4rpx;
-  padding: 2rpx 10rpx; border-radius: 8rpx; background: rgba(232,197,122,0.10);
+  display: inline-flex; align-items: baseline; gap: 3rpx;
+  padding: 3rpx 10rpx; border-radius: 8rpx;
+  background: rgba(235, 203, 132, 0.09);
+  border: 1rpx solid rgba(235, 203, 132, 0.10);
 }
-.counter-rank { font-size: 20rpx; color: var(--gold-dim); }
-.counter-left { font-size: 20rpx; color: var(--ink); }
-.pass-reason { font-size: 22rpx; color: var(--red); text-align: center; margin-top: 10rpx; }
+.counter-rank { font-size: 19rpx; color: var(--gold-dim); }
+.counter-left { font-size: 21rpx; color: var(--ink); font-weight: 600; font-family: "DIN Alternate", sans-serif; }
 
-.force-line { font-size: 22rpx; color: var(--red); text-align: center; margin-bottom: 10rpx; }
-.declared-line { font-size: 22rpx; color: var(--gold-dim); text-align: center; margin-bottom: 10rpx; }
-.status-line { font-size: 26rpx; color: var(--gold); text-align: center; margin-bottom: 12rpx; }
-
-.hand-zone { flex: 1; background: rgba(20,12,16,0.4); border-radius: 14rpx; padding: 16rpx; margin-bottom: 16rpx; }
-.hand-title { font-size: 22rpx; color: var(--gold-dim); margin-bottom: 12rpx; }
-.hand-scroll { width: 100%; white-space: nowrap; }
-.card-row { display: inline-flex; gap: 8rpx; }
-.card {
-  width: 92rpx; height: 132rpx; border-radius: 10rpx; flex: 0 0 auto;
-  background: linear-gradient(180deg, #FFFDF6, #EEDFC4); position: relative;
-  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.3); border: 2rpx solid #C9B48A;
-  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+/* ---------- 提示行 ---------- */
+.force-line {
+  font-size: 21rpx; color: #FFD9D3; text-align: center;
+  margin-bottom: 8rpx; letter-spacing: 1rpx;
 }
-.card.small { width: 64rpx; height: 92rpx; }
-.card.red { color: #C0392B; }
-.card.black { color: #2C2C2A; }
-.card-rank { font-size: 32rpx; font-weight: 500; line-height: 1; }
-.card-suit { font-size: 28rpx; line-height: 1; margin-top: 6rpx; }
-.card.selected { transform: translateY(-16rpx); border-color: var(--gold); box-shadow: 0 0 0 4rpx rgba(232,197,122,0.5); }
-.large-font .card { width: 108rpx; height: 152rpx; }
-.large-font .card-rank { font-size: 40rpx; }
-.large-font .card-suit { font-size: 34rpx; }
-.large-font .status-line { font-size: 30rpx; }
-
-.action-row { display: flex; gap: 16rpx; }
-.act { flex: 1; height: 84rpx; font-size: 28rpx; }
-.act.emph { border-color: var(--gold); color: var(--gold); box-shadow: 0 0 0 2rpx rgba(232,197,122,0.35); }
-
-.mask {
-  position: absolute; inset: 0; z-index: 10;
-  background: rgba(10,6,8,0.92); display: flex; align-items: center; justify-content: center;
+.declared-line { font-size: 21rpx; color: var(--gold); text-align: center; margin-bottom: 8rpx; }
+.status-line {
+  min-height: 42rpx; line-height: 42rpx;
+  font-size: 25rpx; color: var(--gold); text-align: center;
+  letter-spacing: 1rpx;
+  margin-bottom: 4rpx;
 }
-.mask-card {
-  width: 80%; background: var(--bg-panel); border: 1rpx solid var(--gold-dim);
-  border-radius: 20rpx; padding: 48rpx 32rpx; text-align: center;
+.pass-reason { font-size: 21rpx; color: var(--red-2); text-align: center; margin-top: 10rpx; }
+
+/* ---------- 手牌（叠压） ---------- */
+.hand-zone {
+  flex: 0 0 auto;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 0 2rpx;
 }
-.mask-title { font-size: 36rpx; color: var(--gold); margin-bottom: 20rpx; }
-.mask-name { font-size: 40rpx; font-weight: 500; color: var(--ink); margin-bottom: 16rpx; }
-.mask-card .btn { margin-top: 32rpx; }
-.guide-card { text-align: left; }
-.guide-item { display: flex; gap: 12rpx; margin-bottom: 16rpx; }
+.hand-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 6rpx; }
+.hand-title { font-size: 21rpx; color: var(--gold-dim); letter-spacing: 1rpx; }
+.hand-num { font-size: 20rpx; color: var(--gold-dim); font-family: "DIN Alternate", sans-serif; }
+.hand-row {
+  display: flex; align-items: flex-end;
+  padding: 26rpx 6rpx 6rpx;
+  min-height: 168rpx;
+}
+.hand-card { transition: transform 120ms ease, box-shadow 120ms ease; }
+/* 选中的牌抬起并盖过邻居，即使被压住也一眼看出选了哪张 */
+.hand-card.selected {
+  transform: translateY(-26rpx);
+  border-color: rgba(235, 203, 132, 0.95);
+  box-shadow: 0 0 0 3rpx rgba(235, 203, 132, 0.9), 0 18rpx 30rpx rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- 操作 ---------- */
+.action-row { display: flex; align-items: center; gap: 12rpx; margin-top: 8rpx; }
+.act { height: 88rpx; }
+.act-hint { flex: 0 0 148rpx; font-size: 26rpx; letter-spacing: 2rpx; }
+.act-play { flex: 1.5; font-size: 32rpx; letter-spacing: 8rpx; }
+.action-row .btn-outline { flex: 1; }
+.act.emph {
+  border-color: var(--gold);
+  color: var(--gold);
+  box-shadow: 0 0 0 2rpx rgba(235, 203, 132, 0.3), 0 8rpx 22rpx rgba(235, 203, 132, 0.18);
+}
+
+/* ---------- 引导 ---------- */
+.guide-card .btn { margin-top: 28rpx; }
+.guide-item { display: flex; gap: 14rpx; margin-bottom: 18rpx; }
 .guide-no {
-  width: 32rpx; height: 32rpx; line-height: 32rpx; text-align: center; flex: 0 0 auto;
-  border-radius: 50%; background: rgba(232,197,122,0.16); color: var(--gold); font-size: 20rpx;
+  width: 34rpx; height: 34rpx; line-height: 34rpx; text-align: center; flex: 0 0 auto;
+  border-radius: 50%;
+  background: rgba(235, 203, 132, 0.16); color: var(--gold); font-size: 20rpx;
+  font-weight: 600;
 }
-.guide-txt { font-size: 24rpx; color: var(--ink); line-height: 1.55; }
+.guide-txt { font-size: 24rpx; color: var(--ink); line-height: 1.6; }
+.mask-name {
+  font-size: 40rpx; font-weight: 600; color: var(--ink);
+  text-align: center; margin-bottom: 12rpx;
+  font-family: "Songti SC", "STSong", serif;
+}
+.mask-card .btn { margin-top: 30rpx; }
+
+/* 15 张以上：牌略窄、点数略小，保证叠压留出的可读宽度够显示点数 */
+.hand-row.dense .card { width: 84rpx; height: 120rpx; }
+.hand-row.dense .card-rank { font-size: 30rpx; left: 6rpx; }
+.hand-row.dense .card-suit { font-size: 22rpx; top: 38rpx; left: 7rpx; }
+.hand-row.dense .card-mark { font-size: 50rpx; }

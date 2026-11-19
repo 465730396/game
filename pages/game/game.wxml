@@ -4,37 +4,43 @@
 
   <view class="game-content">
     <view class="game-head">
-      <view class="head-meta">
-        <view class="head-title">陕北捉老麻</view>
-        <view class="head-sub">{{gameMeta}}</view>
+      <view class="head-left">
+        <view class="head-meta">{{gameMeta}}</view>
         <view class="head-round">{{roundText}}</view>
       </view>
       <view class="head-actions">
-        <button class="icon-btn" size="mini" bindtap="onRestart">重开</button>
-        <button class="icon-btn" size="mini" bindtap="onExit">退出</button>
+        <view class="ghost-btn" bindtap="onRestart">重开</view>
+        <view class="ghost-btn" bindtap="onExit">退出</view>
       </view>
     </view>
 
-    <!-- 座位 -->
+    <!-- 座位：头像徽章 + 剩牌角标，轮到谁用金环高亮 -->
     <view class="seat-row">
       <view wx:for="{{seats}}" wx:key="seat" class="seat {{item.active?'active':''}} {{item.danger?'danger':''}}">
+        <view class="seat-avatar">
+          <text class="seat-ini">{{item.initial}}</text>
+          <view class="seat-count">{{item.count}}</view>
+        </view>
         <view class="seat-name">{{item.name}}</view>
-        <view class="seat-count">剩 {{item.count}} 张</view>
-        <view wx:if="{{item.declared}}" class="seat-declared">报牌 {{item.declared}}</view>
-        <view wx:if="{{item.last}}" class="seat-last">上一手</view>
+        <view class="seat-tags">
+          <text wx:if="{{item.last}}" class="seat-last">上一手</text>
+          <text wx:if="{{item.declared}}" class="seat-declared">报牌 {{item.declared}}</text>
+          <text wx:if="{{item.danger}}" class="seat-warn">剩一张</text>
+        </view>
         <view wx:if="{{item.line}}" class="seat-line">{{item.line}}</view>
       </view>
     </view>
 
-    <!-- 上一手出牌 -->
-    <view class="play-zone {{playPulse?'pulse':''}}">
-      <view class="play-label">{{playLabel}}</view>
-      <view class="card-row small">
-        <view wx:for="{{lastCards}}" wx:key="id" class="card small {{item.red?'red':'black'}}">
+    <!-- 出牌区：做成毡面，桌上的牌是这一局的焦点 -->
+    <view class="table {{playPulse?'pulse':''}}">
+      <view class="table-label">{{playLabel}}</view>
+      <view wx:if="{{!lastCards.length}}" class="table-empty">自 由 出 牌</view>
+      <view class="table-cards">
+        <view wx:for="{{lastCards}}" wx:key="id" class="card played {{item.red?'red':'black'}}">
           <view class="card-rank">{{item.rank}}</view>
           <view class="card-suit">{{item.suitText}}</view>
+          <view class="card-mark">{{item.suitText}}</view>
         </view>
-        <view wx:if="{{!lastCards.length}}" class="play-empty">—</view>
       </view>
     </view>
 
@@ -57,26 +63,29 @@
     <!-- 状态行 -->
     <view class="status-line">{{statusText}}</view>
 
-    <!-- 手牌 -->
+    <!-- 手牌：叠压成扇形，17 张也能一屏放下 -->
     <view class="hand-zone">
-      <view class="hand-title">{{handTitle}}</view>
-      <scroll-view scroll-x class="hand-scroll">
-        <view class="card-row hand">
-          <view wx:for="{{hand}}" wx:key="id"
-                class="card {{item.red?'red':'black'}} {{item.selected?'selected':''}}"
-                data-id="{{item.id}}" bindtap="onCardTap">
-            <view class="card-rank">{{item.rank}}</view>
-            <view class="card-suit">{{item.suitText}}</view>
-          </view>
+      <view class="hand-head">
+        <text class="hand-title">{{handTitle}}</text>
+        <text wx:if="{{hand.length}}" class="hand-num">{{hand.length}} 张</text>
+      </view>
+      <view class="hand-row {{handDense?'dense':''}}">
+        <view wx:for="{{hand}}" wx:key="id"
+              class="card hand-card {{item.red?'red':'black'}} {{item.selected?'selected':''}}"
+              style="margin-left:{{index===0?0:handPad}}rpx;z-index:{{item.selected?80:index}}"
+              data-id="{{item.id}}" bindtap="onCardTap">
+          <view class="card-rank">{{item.rank}}</view>
+          <view class="card-suit">{{item.suitText}}</view>
+          <view class="card-mark">{{item.suitText}}</view>
         </view>
-      </scroll-view>
+      </view>
     </view>
 
-    <!-- 操作按钮 -->
+    <!-- 操作按钮：提示/不出为次键，出牌为主键 -->
     <view class="action-row">
-      <button class="btn act" disabled="{{!canPlay}}" bindtap="onPlay">出牌</button>
+      <button class="btn btn-outline act act-hint" disabled="{{!canHint}}" bindtap="onHint">提示</button>
       <button class="btn btn-outline act {{passEmphasis?'emph':''}}" disabled="{{!canPass}}" bindtap="onPass">不出</button>
-      <button class="btn btn-outline act" disabled="{{!canHint}}" bindtap="onHint">提示</button>
+      <button class="btn act act-play" disabled="{{!canPlay}}" bindtap="onPlay">出 牌</button>
     </view>
     <view wx:if="{{passReason}}" class="pass-reason">{{passReason}}</view>
   </view>
@@ -88,7 +97,7 @@
       <view class="guide-item"><text class="guide-no">1</text><text class="guide-txt">持红桃 3 的人先出，第一手必须带红桃 3。</text></view>
       <view class="guide-item"><text class="guide-no">2</text><text class="guide-txt">见 K 必出 A、见 A 必出 2、见 2 必出炸弹；被拦住时底部会说明是哪条规则。</text></view>
       <view class="guide-item"><text class="guide-no">3</text><text class="guide-txt">5 局为一轮，炸弹让全桌输赢翻倍，最多 ×4。</text></view>
-      <button class="btn btn-block" bindtap="onGuideClose">知道了</button>
+      <button class="btn btn-block" bindtap="onGuideClose">知 道 了</button>
     </view>
   </view>
 
@@ -97,8 +106,8 @@
     <view class="mask-card">
       <view class="mask-title">请交接设备</view>
       <view class="mask-name">{{handoffName}} 请接手</view>
-      <view class="muted">确认周围无人观看手牌后点击</view>
-      <button class="btn btn-block" bindtap="onHandoff">我已接手</button>
+      <view class="muted center">确认周围无人观看手牌后点击</view>
+      <button class="btn btn-block" bindtap="onHandoff">我 已 接 手</button>
     </view>
   </view>
 </view>

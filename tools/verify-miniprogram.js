@@ -225,6 +225,24 @@ ok(/STAR_COUNT = 56/.test(fxSrc) && /LANTERN_COUNT = 4/.test(fxSrc), '粒子数�
 ok(/cancelAnimationFrame/.test(fxSrc), 'stop 时取消已排队的帧');
 ok(/if \(this\.fx\) this\.fx\.start\(\)/.test(gameSrc), '回前台恢复特效（原实现 onHide 停掉后再不恢复）');
 
+console.log('\n=== 15. 视觉系统（陕北夜宴 · 剪纸鎏金） ===');
+const appWxss = fs.readFileSync(path.join(root, 'app.wxss'), 'utf8');
+const gameWxss = fs.readFileSync(path.join(root, 'pages/game/game.wxss'), 'utf8');
+const indexWxss = fs.readFileSync(path.join(root, 'pages/index/index.wxss'), 'utf8');
+ok(/--gold:\s*#EBCB84/.test(appWxss) && /--paper:\s*#F8F1E1/.test(appWxss), '全局色板已建立（鎏金/羊皮纸/朱砂）');
+ok(/\.btn\s*\{[^}]*0 8rpx 0 #6E4A1E/.test(appWxss), '主按钮有实体厚度（底部暗边 + 顶部高光）');
+ok(/\.pill-group/.test(appWxss) && /\.pill\.on/.test(appWxss), '分段选择改为金色药丸，不再是系统控件');
+ok(/\.card-rank\s*\{[^}]*font-size: 36rpx/.test(appWxss) && /\.card-mark/.test(appWxss), '牌面为羊皮纸 + 角标 + 花色暗纹');
+ok(/\.panel-title::before/.test(appWxss), '面板标题带菱形金饰');
+ok(/\.hand-row/.test(gameWxss) && /\.hand-card\.selected/.test(gameWxss), '手牌支持叠压与选中抬起');
+ok(/handPad: handPad/.test(gameSrc) && /handDense: dense/.test(gameSrc), '叠压步长按牌数实时计算');
+ok(/margin-left:\{\{index===0\?0:handPad\}\}rpx/.test(gameWxml), '手牌逐张应用负边距');
+ok(!/\.table::after/.test(gameWxss) && /table-empty/.test(gameWxml), '空场用居中的"自由出牌"提示，左上角只标轮次（避免同一句话出现两次）');
+ok(/\.daily-date/.test(indexWxss) && /\.daily-cta/.test(indexWxss), '每日挑战改为日期块 + 动作条');
+ok(/\.hotseat-row/.test(indexWxss) && /\.hotseat-pills/.test(indexWxss), '同屏热座人数与按钮同排');
+ok(/\.brand-seal/.test(indexWxss), '品牌区有印章标识');
+ok(!/\.panel-title \{[^}]*border-left/.test(appWxss), '旧的左侧竖线标题已移除');
+
 console.log('\n总计 PASS=' + pass + '  FAIL=' + fail + (todo ? '  TODO=' + todo : ''));
 if (todo) console.log('TODO 项需在小程序后台/资质侧人工完成，不影响代码构建。');
 process.exit(fail ? 1 : 0);

@@ -2,12 +2,14 @@
   <view wx:if="{{noData}}" class="result-head">
     <view class="result-badge draw">—</view>
     <view class="result-title">{{title}}</view>
-    <view class="result-sub">结算数据未保留（小程序可能被回收），返回首页可重新开局</view>
+    <view class="result-sub">结算数据未保留（小程序可能被回收），返回首页可重新开局。</view>
   </view>
 
   <block wx:else>
     <view class="result-head">
-      <view class="result-badge {{badgeClass}}">{{badgeText}}</view>
+      <view class="medal-wrap">
+        <view class="result-badge {{badgeClass}}">{{badgeText}}</view>
+      </view>
       <view class="result-title">{{title}}</view>
       <view class="result-sub">{{roundLabel ? roundLabel + ' · ' : ''}}娱乐积分 · {{time}}</view>
       <view wx:if="{{multiText}}" class="result-multi">{{multiText}}</view>
@@ -18,7 +20,7 @@
       <view class="panel-title">本局积分</view>
       <view wx:for="{{scores}}" wx:key="seat" class="score-row">
         <view class="score-left">
-          <view class="rank-chip {{item.rank===1?'first':''}}">{{item.rank}}</view>
+          <view class="rank-chip {{item.rank===1?'first':item.rank===2?'second':''}}">{{item.rank}}</view>
           <view class="score-info">
             <view class="score-name">{{item.name}}</view>
             <view class="score-sub">剩 {{item.remaining}} 张<text wx:if="{{item.bombCount}}"> · 炸弹 {{item.bombCount}}</text></view>
@@ -56,8 +58,11 @@
   <button wx:else class="btn btn-block" bindtap="onHome">返回首页</button>
 
   <block wx:if="{{!noData}}">
-    <button class="btn btn-outline btn-block share-btn" bindtap="onSavePoster">保存战绩图</button>
-    <button class="btn btn-outline btn-block share-btn" open-type="share">分享给好友</button>
+    <view class="share-row">
+      <view class="share-link" bindtap="onSavePoster">保存战绩图</view>
+      <view class="share-dot">·</view>
+      <button class="share-link share-btn" open-type="share">分享给好友</button>
+    </view>
   </block>
 
   <!-- 战绩图离屏画布 -->

@@ -288,6 +288,8 @@ Page({
       var line = this.lines[i];
       return {
         seat: i, name: p.name, count: p.hand.length,
+        // 头像位用名字首字，比"AI 1/2/3"更像牌桌上的活人
+        initial: (p.name || '?').charAt(0),
         active: i === view.public.currentSeat,
         declared: view.public.declaredCounts[i] || 0,
         // [DESIGN 2026-11-18] 标出"上一手是谁出的"与"只剩一张"的危险状态
@@ -301,7 +303,7 @@ Page({
     var lastCards = last && last.cards.length ? last.cards.map(function (c) { return cardVM(c, false); }) : [];
     var playLabel = last && last.cards.length
       ? (g.players[last.seat].name + ' 出 · ' + (last.detected.label || ''))
-      : '新一轮 · 自由出牌';
+      : '新一轮';
 
     // [DESIGN 2026-11-18] 手牌按点数排序：发牌顺序是随机的，不排序时玩家要在 16~24 张里找牌。
     var hand = view.hand.slice().sort(function (a, b) {
@@ -347,6 +349,15 @@ Page({
       } else passReason = '这一手你必须出牌';
     }
 
+    // [UI 2026-11-19] 手牌叠压：把 N 张牌按可用宽度等分，算出一张牌相对前一张的负边距。
+    // 17 张也能一屏放下（原来每张 92rpx + 8rpx 间隙，一屏只放得下 7 张，找牌要横滑 4 屏）。
+    var hn = hidden ? 0 : hand.length;
+    var dense = hn >= 15;
+    var CW = dense ? 84 : 96;
+    var AVAIL = 662;   // 750 - 页面左右 24*2 - 手牌区留白
+    var step = hn > 1 ? Math.min(CW + 8, (AVAIL - CW) / (hn - 1)) : CW;
+    var handPad = Math.round(step - CW);
+
     var seatForTotal = this.hotseat ? this.activeSeat : 0;
     var myTotal = this.totals[seatForTotal] || 0;
     // 每日挑战是单局制，显示"第 1/1 局"很怪，直接标成挑战
@@ -367,6 +378,8 @@ Page({
       // 手牌数据仍在渲染树里；遮罩 rgba 0.92 仍有 8% 透光，加上遮罩本身依赖 setData
       // 时序，等于把"别偷看"完全押在一层贴图上。现在数据层面直接清空。
       hand: hidden ? [] : hand,
+      handPad: handPad,
+      handDense: dense,
       handTitle: hidden ? '手牌已遮挡' : (this.hotseat ? g.players[this.activeSeat].name + ' 的手牌' : '我的手牌'),
       canPlay: myTurn && view.legalPlays.length > 0 && this.selected.length > 0,
       canPass: myTurn && view.canPass,

@@ -20,7 +20,12 @@ Page({
     hasSession: false,
     sessionDesc: '',
     dailyDone: false,
-    dailyDesc: ''
+    dailyDesc: '',
+    // [UI 2026-11-19] 品牌区右侧的胜率与每日挑战的日期块需要现算，避免在 WXML 里做运算
+    statRate: 0,
+    statGames: 0,
+    dayNum: '',
+    monthNum: ''
   },
 
   todayStr: function () {
@@ -38,11 +43,18 @@ Page({
     var daily = null;
     try { daily = wx.getStorageSync('sbm_daily') || null; } catch (e) {}
     var doneToday = !!(daily && daily.date === this.todayStr());
+    var st2 = SBM.store.getStats();
+    var rate = st2.games ? Math.round((st2.wins / st2.games) * 100) : 0;
+    var now = new Date();
     this.setData({
       largeFont: st.largeFont !== false,
       ruleMode: st.ruleMode === 'SIMPLE' ? 'SIMPLE' : 'CLASSIC',
       hasSession: alive,
       sessionDesc: alive ? this.buildSessionDesc(s) : '',
+      statRate: rate,
+      statGames: st2.games || 0,
+      dayNum: now.getDate(),
+      monthNum: now.getMonth() + 1,
       dailyDone: doneToday,
       dailyDesc: doneToday
         ? ('今日成绩 ' + (daily.delta > 0 ? '+' : '') + daily.delta + ' 分 · 已锁定，重玩只作练习')
@@ -56,7 +68,8 @@ Page({
     var g = s.game;
     var who = g.players[g.currentSeat] ? g.players[g.currentSeat].name : '';
     var counts = g.players.map(function (p) { return p.hand.length; }).join('/');
-    return g.players.length + ' 人 · ' + (s.hotseat ? '热座' : '人机') + ' · 轮到 ' + who + ' · 剩牌 ' + counts;
+    // 文案要能塞进一行：卡片里还有"未完成"竖标、放弃、继续三个元素
+    return g.players.length + ' 人 · ' + (s.hotseat ? '热座' : '人机') + ' · ' + who + ' 出牌 · ' + counts;
   },
 
   onHide: function () { audio.suspend(); },

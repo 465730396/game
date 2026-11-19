@@ -4,22 +4,23 @@
   "packOptions": {
     "ignore": [
       {
-        "type": "folder",
-        "value": "h5"
+        "value": "h5",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": "tools"
+        "value": "tools",
+        "type": "folder"
       },
       {
-        "type": "folder",
-        "value": ".git"
+        "value": ".git",
+        "type": "folder"
       },
       {
-        "type": "file",
-        "value": "README.md"
+        "value": "README.md",
+        "type": "file"
       }
-    ]
+    ],
+    "include": []
   },
   "setting": {
     "urlCheck": true,
@@ -31,11 +32,27 @@
     "minifyWXML": true,
     "bigPackageSizeSupport": true,
     "checkSiteMap": true,
-    "compileHotReLoad": false
+    "compileHotReLoad": false,
+    "compileWorklet": false,
+    "uglifyFileName": false,
+    "uploadWithSourceMap": true,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
   },
   "compileType": "miniprogram",
   "libVersion": "3.5.0",
   "appid": "wxafb07ccffcaffb77",
   "projectname": "shengbei-laomazi",
-  "condition": {}
+  "condition": {},
+  "simulatorPluginLibVersion": {},
+  "editorSetting": {}
 }
