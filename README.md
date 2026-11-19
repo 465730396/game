@@ -32,7 +32,7 @@ game/
 
 ### 微信小程序
 
-1. 用真实 AppID 替换占位值（只能跑模拟器的 `touristappid`）：`node tools/set-appid.js wx1234567890abcdef`，也可直接改 `project.config.json` 的 `appid`。
+1. AppID 已写入 `project.config.json`（当前 `wxafb07ccffcaffb77`）。换号时用 `node tools/set-appid.js <AppID>` 或直接改该字段。
 2. 用微信开发者工具**导入本目录（game/ 根目录，不是子目录）**，编译即可预览。
 3. 真机预览需在开发者工具中点击"预览"扫码。
 
@@ -93,7 +93,7 @@ game/
 
 代码层已就绪（`verify-miniprogram.js` 只留 1 项 AppID 的 TODO），下面这些在小程序后台或资质侧完成，改代码解决不了：
 
-1. **AppID** — 后台「开发管理 → 开发设置」取 AppID，用 `tools/set-appid.js` 写入。`touristappid` 只能跑模拟器，无法上传代码。
+1. ~~**AppID**~~ — 已配置为 `wxafb07ccffcaffb77`。**需你确认该 AppID 的主体与“接下来要选的类目”是同一主体**：类目、备案、版号都必须挂在这个主体下，换主体要重走备案。
 2. **用户隐私保护指引** — 后台「设置 → 服务内容声明 → 用户隐私保护指引」必须声明**相册（仅写入）**，否则保存战绩图会被隐私接口拦截（`errno 112`，重试无效）。本项目另涉及设备信息（`getWindowInfo`，仅用于安全区计算）与本地存储（对局记录，不上传）。页内正文已就绪：`pages/privacy/privacy`，入口在「设置 → 协议与数据」，后台声明的内容需与这一页逐条对得上。
 3. **ICP 备案** — 2023-09 起新小程序须先完成备案才能发布，需主体证件与负责人信息。
 4. **服务类目与版号** — 棋牌/游戏类目需《网络游戏电子出版物审批文号》，棋牌类通常还需《网络文化经营许可证》，且需企业主体；个人主体无法选择游戏类目。
@@ -115,7 +115,7 @@ game/
 
 ## 已知事项
 
-1. `project.config.json` 的 `appid` 仍是游客占位 `touristappid`，上传前用 `node tools/set-appid.js <AppID>` 替换。这是 `verify-miniprogram.js` 中唯一的 TODO 项，不换就无法上传代码。
+1. `project.config.json` 的 `appid` 已设为 `wxafb07ccffcaffb77`（`verify-miniprogram.js` 的 TODO 项因此清零）。若这个号是测试号或个人主体号，仍无法选择游戏类目，也没法发布正式版。
 2. `tools/build-bundle.js` 原用于从 `../shengbei-laomazi/utils` 拼接出 `bundle.js`，该源目录当前不在仓库内。目前 `bundle.js` 是唯一真相源并已纳入版本管理；构建脚本在源目录缺失时会明确报错，并阻止缺少历史修复标记的旧产物覆盖当前文件（确认要覆盖可加 `--force`）。
 3. 好友房、云端战绩、账号体系尚未实现，需要后端/云函数支持。积分仅作本机娱乐记录。
 4. 游戏内规则页列出了 12 项"待本地玩家确认"的默认规则取舍，需由玩家确认后再固化。

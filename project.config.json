@@ -3,10 +3,22 @@
   "miniprogramRoot": "./",
   "packOptions": {
     "ignore": [
-      { "type": "folder", "value": "h5" },
-      { "type": "folder", "value": "tools" },
-      { "type": "folder", "value": ".git" },
-      { "type": "file", "value": "README.md" }
+      {
+        "type": "folder",
+        "value": "h5"
+      },
+      {
+        "type": "folder",
+        "value": "tools"
+      },
+      {
+        "type": "folder",
+        "value": ".git"
+      },
+      {
+        "type": "file",
+        "value": "README.md"
+      }
     ]
   },
   "setting": {
@@ -23,7 +35,7 @@
   },
   "compileType": "miniprogram",
   "libVersion": "3.5.0",
-  "appid": "touristappid",
+  "appid": "wxafb07ccffcaffb77",
   "projectname": "shengbei-laomazi",
   "condition": {}
 }
