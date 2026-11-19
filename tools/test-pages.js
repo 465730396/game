@@ -22,6 +22,7 @@ function section(t) { console.log('\n=== ' + t + ' ==='); }
 // ---- 最小 wx 环境 ----
 var store = {};
 var redirects = [];
+var navs = [];
 var modalConfirm = true;
 var innerAudioOpt = null;
 
@@ -46,6 +47,7 @@ global.wx = {
   showToast: function () {},
   vibrateShort: function () {},
   redirectTo: function (o) { redirects.push(o.url); },
+  navigateTo: function (o) { navs.push(o.url); },
   reLaunch: function () {},
   setClipboardData: function () {}
 };
@@ -192,9 +194,37 @@ var f2 = newCtx({ daily: true, dailyDate: '2026-11-20' });
 f2.saveDaily(80, false);
 ok(store['sbm_daily'].delta === 80, '次日写入新成绩');
 
+// ---- 6. 隐私指引页的"删除本机数据" ----
+section('6. 隐私页可删除本机数据（保留设置）');
+var privacyCfg = null;
+global.Page = function (o) { privacyCfg = o; };
+require(path.join(ROOT, 'pages/privacy/privacy.js'));
+store['sbm_records'] = [{ name: '我', delta: 5 }];
+store['sbm_stats'] = { games: 3, wins: 1, escapes: 0, totalScore: 5 };
+store['sbm_session'] = sess({});
+store['sbm_round'] = { index: 2, size: 5, totals: {} };
+store['sbm_daily'] = { date: '2026-11-19', delta: 40 };
+store['sbm_errlog'] = [{ msg: 'x' }];
+store['sbm_settings'] = { bgm: true, dialect: true, largeFont: true, vibration: true };
+var pctx = {};
+Object.keys(privacyCfg).forEach(function (k) { pctx[k] = privacyCfg[k]; });
+pctx.data = { sections: [] };
+pctx.setData = function (o) { Object.keys(o).forEach(function (k) { pctx.data[k] = o[k]; }); };
+modalConfirm = true;
+pctx.onClear();
+ok(store['sbm_records'] === undefined && store['sbm_stats'] === undefined, '对局记录与统计已删除');
+ok(store['sbm_session'] === undefined && store['sbm_round'] === undefined, '续局快照与轮次已删除');
+ok(store['sbm_daily'] === undefined && store['sbm_errlog'] === undefined, '每日成绩与异常日志已删除');
+ok(store['sbm_settings'] && store['sbm_settings'].bgm === true, '用户设置被保留（不误删偏好）');
+ok(pctx.data.cleared === true, '页面状态提示已清除');
+modalConfirm = false;
+store['sbm_records'] = [{ name: '我', delta: 5 }];
+pctx.onClear();
+ok(store['sbm_records'] !== undefined, '取消确认时不删除任何数据');
+
 // 等待可能的残留定时器执行，确认没有漏网跳转
 setTimeout(function () {
-  section('6. 无残留跳转');
+  section('7. 无残留跳转');
   ok(redirects.length === 0, '本轮用例未触发任何结算跳转', 'redirectTo ' + redirects.length + ' 次');
   console.log('\n总计 PASS=' + pass + '  FAIL=' + fail);
   process.exit(fail ? 1 : 0);

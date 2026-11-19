@@ -184,6 +184,8 @@ Page({
   onShow: function () {
     var st = app.getSettings();
     if (st.bgm) audio.resume(); else audio.stopBgm();
+    // onHide 会停掉特效帧循环，回前台要显式恢复，否则背景永远定格在切走那一刻
+    if (this.fx) this.fx.start();
     if (this.game) {
       this.render();
       // 续局/切后台回来时，若当前轮到 AI，恢复 AI 调度

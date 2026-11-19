@@ -44,6 +44,18 @@
     <view class="panel-title">关于</view>
     <view class="rule-p">陕北捉老麻 · 娱乐牌局。积分仅作本地娱乐记录，不涉及任何真实货币或物品兑换。</view>
   </view>
+  <!-- [RELEASE 2026-11-19] 隐私接口（保存战绩图走相册）必须有页内可点开的指引正文，
+       仅在后台勾选声明是不够的，审核会同时核对页内入口。 -->
+  <view class="panel">
+    <view class="panel-title">协议与数据</view>
+    <view class="setting-row" bindtap="onPrivacy">
+      <view class="setting-info">
+        <view class="setting-name">用户隐私保护指引</view>
+        <view class="setting-desc">说明用到的权限、数据存在哪里、如何删除</view>
+      </view>
+      <view class="link-arrow">›</view>
+    </view>
+  </view>
   <!-- [RELEASE 2026-11-18] 线上排错出口：小程序无控制台，玩家遇到白屏时我们拿不到现场。
        这里把最近异常复制出来，是提审前最低成本的"反馈通道"。 -->
   <view class="panel">

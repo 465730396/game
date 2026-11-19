@@ -205,7 +205,10 @@ Page({
       cancelText: reason === 'other' ? '取消' : '稍后',
       success: function (m) {
         if (!m.confirm) return;
-        if (reason === 'privacy' || reason === 'denied') {
+        if (reason === 'privacy') {
+          // 隐私协议不在 openSetting 里，跳设置页只会让玩家困惑；直接打开正文页
+          privacy.openGuide();
+        } else if (reason === 'denied') {
           privacy.openAlbumSetting(function () {});
         } else if (reason === 'other' && path) {
           wx.previewImage({ urls: [path], current: path });

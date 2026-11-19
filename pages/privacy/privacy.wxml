@@ -1,0 +1,24 @@
+<view class="page {{largeFont?'large-font':''}}">
+  <view class="panel">
+    <view class="panel-title">总述</view>
+    <view class="rule-p">本小程序为单机离线牌类游戏：无账号、无登录、无网络上传。你的对局数据只保存在本机，我们看不到、也不收集。下面逐项说明用到了什么、用在哪里。</view>
+  </view>
+
+  <view class="panel" wx:for="{{sections}}" wx:key="title">
+    <view class="panel-title">{{item.title}}</view>
+    <view class="rule-p" wx:for="{{item.paras}}" wx:for-item="p" wx:key="*this">{{p}}</view>
+  </view>
+
+  <view class="panel">
+    <view class="panel-title">数据管理</view>
+    <view class="setting-row">
+      <view class="setting-info">
+        <view class="setting-name">清除本机数据</view>
+        <view class="setting-desc">{{cleared ? '已清除对局数据' : '删除记录、统计、快照与日志'}}</view>
+      </view>
+      <button class="icon-btn" size="mini" bindtap="onClear">清除</button>
+    </view>
+  </view>
+
+  <view class="foot-note">最后更新：{{updated}}</view>
+</view>

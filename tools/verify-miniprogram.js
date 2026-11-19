@@ -33,7 +33,7 @@ console.log('\n=== 2. app.json 页面注册 ===');
 const appCfg = readJSON('app.json');
 ok(!!appCfg, 'app.json 合法');
 const pages = appCfg && appCfg.pages || [];
-ok(pages.length === 6, '注册 6 个页面，实际 ' + pages.length);
+ok(pages.length === 7, '注册 7 个页面，实际 ' + pages.length);
 
 console.log('\n=== 3. 每页四件套 ===');
 pages.forEach(function (p) {
@@ -202,6 +202,28 @@ const smRules = (sitemap && sitemap.rules) || [];
 ok(smRules.length && smRules[0].action === 'allow' && smRules[0].page === 'pages/index/index', 'sitemap 只放开首页');
 ok(smRules.some(function (r) { return r.action === 'disallow' && r.page === '*'; }), 'sitemap 其余页面不索引');
 ok(fs.existsSync(path.join(root, 'tools/test-pages.js')), '页面级回归脚本存在');
+
+console.log('\n=== 14. 隐私指引页与特效性能 ===');
+ok(pages.indexOf('pages/privacy/privacy') >= 0, '隐私指引页已在 app.json 注册');
+const privacyWxml = fs.readFileSync(path.join(root, 'pages/privacy/privacy.wxml'), 'utf8');
+const privacyPage = fs.readFileSync(path.join(root, 'pages/privacy/privacy.js'), 'utf8');
+ok(/相册/.test(privacyPage) && /剪贴板/.test(privacyPage), '正文声明了相册与剪贴板用途');
+ok(/仅写入/.test(privacyPage), '声明相册"仅写入、不读取"');
+ok(/不会获取的信息/.test(privacyWxml) || /不会获取/.test(privacyPage), '正文列明不获取的信息');
+ok(/清除本机数据/.test(privacyWxml) && /onClear/.test(privacyPage), '提供本机数据删除入口');
+ok(/clearRecords/.test(privacyPage), '删除入口调用 store.clearRecords');
+const settingsWxml2 = fs.readFileSync(path.join(root, 'pages/settings/settings.wxml'), 'utf8');
+const settingsSrc = fs.readFileSync(path.join(root, 'pages/settings/settings.js'), 'utf8');
+ok(/bindtap="onPrivacy"/.test(settingsWxml2) && /pages\/privacy\/privacy/.test(settingsSrc), '设置页有可点开的隐私指引入口');
+ok(/openGuide/.test(privacySrc) && /openGuide/.test(resultSrc), '保存失败时引导到指引页（而非无用的 openSetting）');
+const fxSrc = fs.readFileSync(path.join(root, 'utils/fx.js'), 'utf8');
+ok(/TARGET_MS = 30/.test(fxSrc), '特效帧率上限 30fps（阈值按 16ms 时间片对齐）');
+ok(/createOffscreenCanvas/.test(fxSrc), '静态层预渲染到离屏画布');
+ok(/ctx\.drawImage\(bg, 0, 0, w, h\)/.test(fxSrc), '每帧只 blit 静态层');
+ok(/lanternSprite/.test(fxSrc) && /globalAlpha/.test(fxSrc), '灯笼光晕改为贴图缩放（不再逐帧建渐变）');
+ok(/STAR_COUNT = 56/.test(fxSrc) && /LANTERN_COUNT = 4/.test(fxSrc), '粒子数量已下调');
+ok(/cancelAnimationFrame/.test(fxSrc), 'stop 时取消已排队的帧');
+ok(/if \(this\.fx\) this\.fx\.start\(\)/.test(gameSrc), '回前台恢复特效（原实现 onHide 停掉后再不恢复）');
 
 console.log('\n总计 PASS=' + pass + '  FAIL=' + fail + (todo ? '  TODO=' + todo : ''));
 if (todo) console.log('TODO 项需在小程序后台/资质侧人工完成，不影响代码构建。');

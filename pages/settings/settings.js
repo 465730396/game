@@ -45,6 +45,10 @@ Page({
     if (s.vibration) audio.vibrate();
   },
 
+  onPrivacy: function () {
+    wx.navigateTo({ url: '/pages/privacy/privacy' });
+  },
+
   // 清掉已读标记，下次进牌桌重新展示引导（也方便给别人演示）
   onResetGuide: function () {
     try { wx.removeStorageSync('sbm_guided'); } catch (e) {}

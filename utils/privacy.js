@@ -67,8 +67,10 @@ function explain(reason) {
   if (reason === 'privacy') {
     return {
       title: '需先同意隐私协议',
-      content: '保存战绩图属于隐私接口，需先同意《用户隐私保护指引》。可在「设置 → 隐私」中查看。',
-      confirmText: '去设置'
+      // 隐私协议不是 openSetting 里能开的开关，点了也白点；改为引导到页内正文，
+      // 玩家读完后主动再点一次保存，系统会重新弹授权。
+      content: '保存战绩图属于隐私接口，需先同意《用户隐私保护指引》。可在本小程序「设置 → 用户隐私保护指引」查看正文后重试。',
+      confirmText: '查看指引'
     };
   }
   if (reason === 'denied') {
@@ -92,9 +94,15 @@ function explain(reason) {
   };
 }
 
+// 打开页内隐私指引正文（提审要求：必须有可点开的入口）
+function openGuide() {
+  wx.navigateTo({ url: '/pages/privacy/privacy' });
+}
+
 module.exports = {
   ensurePrivacy: ensurePrivacy,
   saveImage: saveImage,
   openAlbumSetting: openAlbumSetting,
+  openGuide: openGuide,
   explain: explain
 };

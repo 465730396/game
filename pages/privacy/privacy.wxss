@@ -1,0 +1,18 @@
+.rule-p { font-size: 26rpx; line-height: 1.8; color: var(--ink); margin-bottom: 12rpx; }
+.rule-p:last-child { margin-bottom: 0; }
+.foot-note { text-align: center; font-size: 22rpx; color: var(--gold-dim); padding: 8rpx 0 24rpx; }
+
+/* 设置行样式与设置页保持一致（面板内的行 + 迷你按钮） */
+.setting-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18rpx 0; border-top: 1rpx solid rgba(232, 197, 122, 0.12);
+}
+.setting-row:first-of-type { border-top: none; }
+.setting-info { flex: 1; padding-right: 20rpx; }
+.setting-name { font-size: 28rpx; color: var(--ink); }
+.setting-desc { font-size: 22rpx; color: var(--gold-dim); margin-top: 6rpx; }
+.icon-btn {
+  background: transparent; border: 1rpx solid var(--gold-dim); color: var(--gold);
+  border-radius: 10rpx; font-size: 24rpx; padding: 0 20rpx; line-height: 2.1;
+}
+.icon-btn::after { border: none; }

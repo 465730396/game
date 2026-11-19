@@ -5,7 +5,8 @@
     "pages/result/result",
     "pages/rules/rules",
     "pages/stats/stats",
-    "pages/settings/settings"
+    "pages/settings/settings",
+    "pages/privacy/privacy"
   ],
   "window": {
     "navigationBarBackgroundColor": "#2A1216",

@@ -6,3 +6,4 @@
 .setting-name { font-size: 28rpx; color: var(--ink); }
 .setting-desc { font-size: 22rpx; color: var(--gold-dim); margin-top: 6rpx; }
 .rule-p { font-size: 26rpx; line-height: 1.8; color: var(--ink); }
+.link-arrow { font-size: 40rpx; color: var(--gold-dim); line-height: 1; padding-left: 16rpx; }
