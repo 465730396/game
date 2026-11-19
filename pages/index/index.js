@@ -15,7 +15,14 @@ Page({
     ruleMode: 'CLASSIC',
     rules: [{ value: 'CLASSIC', label: '经典规则' }, { value: 'SIMPLE', label: '简化规则' }],
     hasSession: false,
-    sessionDesc: ''
+    sessionDesc: '',
+    dailyDone: false,
+    dailyDesc: ''
+  },
+
+  todayStr: function () {
+    var d = new Date();
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   },
 
   onShow: function () {
@@ -24,11 +31,19 @@ Page({
     var s = app.getSession();
     // 快照可能因旧版本/异常写入而不完整，逐层校验，避免 s.game 缺失时直接抛错白屏
     var alive = !!(s && s.game && s.game.players && s.game.players.length && s.game.status === 'PLAYING');
+    // [DESIGN 2026-11-19] 每日挑战：当天 seed 固定，全服同一副牌；成绩本地留存，可重玩刷新。
+    var daily = null;
+    try { daily = wx.getStorageSync('sbm_daily') || null; } catch (e) {}
+    var doneToday = !!(daily && daily.date === this.todayStr());
     this.setData({
       largeFont: st.largeFont !== false,
       ruleMode: st.ruleMode === 'SIMPLE' ? 'SIMPLE' : 'CLASSIC',
       hasSession: alive,
-      sessionDesc: alive ? this.buildSessionDesc(s) : ''
+      sessionDesc: alive ? this.buildSessionDesc(s) : '',
+      dailyDone: doneToday,
+      dailyDesc: doneToday
+        ? ('今日最佳 ' + (daily.delta > 0 ? '+' : '') + daily.delta + ' 分 · 3 人普通场')
+        : '全服同一副牌，单局限定 · 3 人普通场'
     });
     if (st.bgm) audio.startBgm(true); else audio.stopBgm();
   },
@@ -74,6 +89,12 @@ Page({
   },
 
   onContinue: function () { wx.navigateTo({ url: '/pages/game/game?resume=1' }); },
+
+  // [DESIGN 2026-11-19] 每日挑战：seed = 当天日期，所有人拿到同一副牌，单局定胜负。
+  onDaily: function () {
+    audio.init();
+    wx.navigateTo({ url: '/pages/game/game?mode=AI&count=3&level=NORMAL&rule=CLASSIC&daily=1' });
+  },
 
   onDiscardSession: function () {
     var self = this;

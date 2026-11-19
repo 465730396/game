@@ -180,5 +180,29 @@ var holdView = {
 };
 ok(SBM.ai.chooseAction(holdView, 'NORMAL').action === 'PASS', 'AI 在对手宽裕时留炸不出');
 
+section('10. 牌堆修正 / 末位先出 / 每日挑战 seed');
+// [DESIGN 2026-11-19] 旧版 2/3 人局只剩 1 张 2、3 张 A，"见 2 必出炸弹"几乎无从触发。
+var dk3 = e.createDeck(e.defaultRuleConfig(3));
+var dk2 = e.createDeck(e.defaultRuleConfig(2));
+var cntRank = function (d, r) { return d.filter(function (x) { return x.rank === r; }).length; };
+ok(dk3.length === 51, '3 人局 51 张，实际 ' + dk3.length);
+ok(cntRank(dk3, 'A') === 4 && cntRank(dk3, '2') === 3, '3 人局保留 4 张 A、3 张 2（强制规则可执行）');
+ok(dk3.length % 3 === 0, '3 人局可整除发牌');
+ok(dk2.length === 52 && cntRank(dk2, '2') === 4, '2 人局改用 52 张全牌');
+
+var gFirstDefault = c.createGame({ playerCount: 3, seed: 777 });
+ok(gFirstDefault.firstHandDone === false, '未指定先手时仍按红桃3 首出');
+var gFirstSet = c.createGame({ playerCount: 3, seed: 777, firstSeat: 1 });
+ok(gFirstSet.currentSeat === 1 && gFirstSet.firstHandDone === true, '指定先手生效并跳过红桃3 约束');
+ok(c.getView(gFirstSet, 1).legalPlays.length > 0, '指定先手后合法牌不为空');
+
+var gSeedA = c.createGame({ playerCount: 3, seed: 20261119 });
+var gSeedB = c.createGame({ playerCount: 3, seed: 20261119 });
+var sig = function (g) {
+  return g.players.map(function (p) { return p.hand.map(function (x) { return x.id; }).join(','); }).join('|');
+};
+ok(sig(gSeedA) === sig(gSeedB), '同 seed 发牌完全一致（每日挑战前提）');
+ok(sig(gSeedA) !== sig(c.createGame({ playerCount: 3, seed: 20261120 })), '不同日期牌局不同');
+
 console.log('\n总计 PASS=' + pass + '  FAIL=' + fail);
 process.exit(fail ? 1 : 0);

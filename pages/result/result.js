@@ -9,7 +9,7 @@ Page({
     title: '', ruleSetId: '', time: '', scores: [], hotseat: false,
     largeFont: false,
     roundIndex: 0, roundSize: 0, roundDone: false, roundLabel: '', againLabel: '再来一局',
-    totals: [], multiplier: 1, multiText: ''
+    totals: [], history: [], multiplier: 1, multiText: ''
   },
 
   onLoad: function () {
@@ -32,6 +32,8 @@ Page({
     var rd = r.round || null;
     var roundLabel = rd ? ('第 ' + rd.index + ' / ' + rd.size + ' 局') : '';
     var againLabel = rd && !rd.done ? ('下一局（第 ' + (rd.index + 1) + ' 局）') : '开始新一轮';
+    // 每日挑战是单局制，按钮语义要跟着变
+    if (r.daily) againLabel = '再战一次';
 
     this.setData({
       noData: false,
@@ -49,6 +51,7 @@ Page({
       roundLabel: roundLabel,
       againLabel: againLabel,
       totals: rd && rd.totals ? rd.totals.slice().sort(function (a, b) { return b.total - a.total; }) : [],
+      history: rd && rd.history ? rd.history.slice() : [],
       multiplier: r.multiplier || 1,
       multiText: (r.multiplier && r.multiplier > 1) ? ('本局炸弹翻倍 ×' + r.multiplier) : ''
     });
@@ -62,6 +65,11 @@ Page({
   // 一轮未打满时带上 round=1 继续累计，打满则开新一轮。
   onAgain: function () {
     var r = app.globalData.lastResult || {};
+    // 每日挑战重玩：仍走同一天的固定 seed，而不是掉进普通对局
+    if (r.daily) {
+      wx.redirectTo({ url: '/pages/game/game?mode=AI&count=3&level=NORMAL&rule=CLASSIC&daily=1' });
+      return;
+    }
     var mode = r.mode || (r.hotseat ? 'HOTSEAT' : 'AI');
     var level = r.level || 'NORMAL';
     var count = r.count || (r.scores ? r.scores.length : 3);

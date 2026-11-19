@@ -27,11 +27,22 @@
       </view>
     </view>
 
-    <view class="panel" wx:if="{{totals.length}}">
+    <view class="panel" wx:if="{{totals.length && roundSize > 1}}">
       <view class="panel-title">本轮累计（{{roundIndex}} / {{roundSize}} 局）</view>
       <view wx:for="{{totals}}" wx:key="seat" class="total-row">
         <view class="total-name">{{item.name}}</view>
         <view class="total-val {{item.total>0?'up':'down'}}">{{item.total>0?'+':''}}{{item.total}}</view>
+      </view>
+      <!-- [DESIGN 2026-11-19] 逐局得分：一轮 5 局的冠亚分差实测平均 25 分、标准差 16，
+           只给一个总分玩家看不出差距是第几局拉开的，输了也不知道输在哪。 -->
+      <view wx:if="{{roundDone && history.length}}" class="hist-block">
+        <view class="total-tip">逐局得分</view>
+        <view class="hist-grid">
+          <view wx:for="{{history}}" wx:key="no" class="hist-cell">
+            <view class="hist-idx">第{{item.no}}局</view>
+            <view class="hist-val {{item.delta>0?'up':item.delta<0?'down':'flat'}}">{{item.delta>0?'+':''}}{{item.delta}}</view>
+          </view>
+        </view>
       </view>
       <view wx:if="{{roundDone}}" class="total-tip">本轮已结束，开新一轮重新计分</view>
     </view>

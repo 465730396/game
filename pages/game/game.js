@@ -18,6 +18,15 @@ var FLAG_TEXT = {
   NEED_A: '见K必出A', NEED_2: '见A必出2',
   NEED_BOMB: '见2必出炸', NEED_PAIR_A: '见对K必出对A'
 };
+// [DESIGN 2026-11-19] 强制规则的"正经解释"。实测 74% 的对局里玩家至少撞上一次
+// "想不出但不让不出"，底部一行小字说不清"凭什么我必须出"，挫败感由此而来。
+// 每条规则第一次拦住玩家时用弹窗讲一遍，之后只留底部提示，不重复打扰。
+var FORCE_DETAIL = {
+  NEED_A: '本地规矩：上家出单张 K，你手上只要有 A 就必须压，不能留着不出。手上没有 A 才可以过。',
+  NEED_PAIR_A: '本地规矩：上家出对子 K，你手上有对 A 就必须压。没有对 A 才可以过。',
+  NEED_2: '本地规矩：上家出 A，你手上有 2 就必须压。没有 2 才可以过。',
+  NEED_BOMB: '本地规矩：上家出 2，你手上有炸弹就必须炸。没有炸弹才可以过。'
+};
 // [DESIGN 2026-11-18] AI 人格化：座位名与触发台词。旧版是"AI 1/2/3"，对局像在做题。
 var AI_NAMES = ['老支书', '二娃', '秀兰'];
 var AI_LINES = {
@@ -65,14 +74,32 @@ Page({
     this.level = query.level || 'NORMAL';
     this.count = Number(query.count) || 3;
     this.resuming = query.resume === '1';
+    // [DESIGN 2026-11-19] 每日挑战：以当天日期为 seed，全服同一副牌，单局制。
+    // 不需要后端就能做出"同一天大家打同一局"的对比场景，是当前结构下最便宜的留存钩子。
+    this.daily = query.daily === '1';
+    this.dailyDate = '';
+    this.dailySeed = 0;
+    if (this.daily) {
+      var now = new Date();
+      var mm = ('0' + (now.getMonth() + 1)).slice(-2);
+      var dd = ('0' + now.getDate()).slice(-2);
+      this.dailyDate = now.getFullYear() + '-' + mm + '-' + dd;
+      this.dailySeed = Number('' + now.getFullYear() + mm + dd);
+      this.count = 3;
+      this.level = 'NORMAL';
+      this.ruleMode = 'CLASSIC';
+    }
     // [DESIGN 2026-11-18] 规则档：简化档关闭 4 条强制出牌规则，降低新手首局挫败感。
     var st0 = app.getSettings();
-    this.ruleMode = query.rule === 'SIMPLE' ? 'SIMPLE'
-      : (query.rule === 'CLASSIC' ? 'CLASSIC' : (st0.ruleMode || 'CLASSIC'));
-    // 一轮 5 局累计积分
-    this.roundSize = 5;
+    if (!this.daily) {
+      this.ruleMode = query.rule === 'SIMPLE' ? 'SIMPLE'
+        : (query.rule === 'CLASSIC' ? 'CLASSIC' : (st0.ruleMode || 'CLASSIC'));
+    }
+    // 一轮 5 局累计积分；每日挑战是单局
+    this.roundSize = this.daily ? 1 : 5;
     this.roundIndex = 1;
     this.totals = {};
+    this.roundHistory = [];
     this.lines = {};
 
     var game;
@@ -86,6 +113,7 @@ Page({
         // 续局要把轮次进度一起恢复，否则累计分会从第 1 局重算
         this.roundIndex = s.roundIndex || 1;
         this.totals = s.roundTotals || {};
+        this.roundHistory = s.roundHistory || [];
         if (s.ruleMode) this.ruleMode = s.ruleMode;
       } else {
         app.clearSession();
@@ -98,7 +126,9 @@ Page({
       if (rs && rs.mode === this.mode && rs.count === this.count && rs.index) {
         this.roundIndex = rs.index;
         this.totals = rs.totals || {};
-      } else {
+        this.roundHistory = rs.history || [];
+      } else if (!this.daily) {
+        // 每日挑战是独立入口，不能顺手清掉用户正在进行的轮次进度
         app.clearRound();
       }
       game = this.createGame();
@@ -179,9 +209,19 @@ Page({
       // [DESIGN 2026-11-18] 人机模式给 AI 起地方味名字，替代"AI 1/2/3"，对手有身份后对局才不像做题。
       names.push(this.hotseat ? ('玩家 ' + (i + 1)) : (i === 0 ? '我' : AI_NAMES[(i - 1) % AI_NAMES.length]));
     }
-    var g = controller.createGame({
-      playerCount: this.count, difficulties: difficulties, names: names, ruleMode: this.ruleMode
-    });
+    var opt = { playerCount: this.count, difficulties: difficulties, names: names, ruleMode: this.ruleMode };
+    // 每日挑战：固定 seed，全服同一副牌
+    if (this.daily) opt.seed = this.dailySeed;
+    // [DESIGN 2026-11-19] 轮次内从第 2 局起由上一局末位先出，首局仍按红桃3。
+    // 注意：每局红桃 3 独立随机，先手优势不会累积到同一人，这里的目的不是消除优势，
+    // 而是给落后方一次起手补偿，让一轮之内真的有翻盘窗口。
+    if (!this.daily && this.roundIndex > 1) {
+      var rd = app.getRound();
+      if (rd && typeof rd.nextFirstSeat === 'number' && rd.nextFirstSeat < this.count) {
+        opt.firstSeat = rd.nextFirstSeat;
+      }
+    }
+    var g = controller.createGame(opt);
     if (this.hotseat) g.players.forEach(function (p) { p.isAI = false; });
     return g;
   },
@@ -192,11 +232,14 @@ Page({
 
   saveSnapshot: function () {
     if (!this.game || this.game.status !== 'PLAYING') return;
+    // 每日挑战不写续局快照：否则玩家在轮次中途点挑战，会把原有的未完成对局覆盖掉
+    if (this.daily) return;
     app.saveSession({
       game: this.game, mode: this.mode, level: this.level, count: this.count,
       hotseat: this.hotseat, activeSeat: this.activeSeat, savedAt: Date.now(),
       // 轮次进度随快照一起存，续局才能接着第 N 局打
-      roundIndex: this.roundIndex, roundTotals: this.totals, ruleMode: this.ruleMode
+      roundIndex: this.roundIndex, roundTotals: this.totals, ruleMode: this.ruleMode,
+      roundHistory: this.roundHistory
     });
   },
 
@@ -287,11 +330,12 @@ Page({
 
     var seatForTotal = this.hotseat ? this.activeSeat : 0;
     var myTotal = this.totals[seatForTotal] || 0;
-    var roundText = '第 ' + this.roundIndex + ' / ' + this.roundSize + ' 局' +
-      (myTotal ? ' · 累计 ' + (myTotal > 0 ? '+' : '') + myTotal : '');
+    // 每日挑战是单局制，显示"第 1/1 局"很怪，直接标成挑战
+    var roundText = this.daily ? '每日挑战' : ('第 ' + this.roundIndex + ' / ' + this.roundSize + ' 局' +
+      (myTotal ? ' · 累计 ' + (myTotal > 0 ? '+' : '') + myTotal : ''));
 
     this.setData({
-      gameMeta: (g.players.length + ' 人 · ') + (this.hotseat ? '同屏热座' :
+      gameMeta: (this.daily ? '每日挑战 · ' : '') + (g.players.length + ' 人 · ') + (this.hotseat ? '同屏热座' :
         ({ EASY: '简单', NORMAL: '普通', HARD: '困难' }[this.level] || this.level)) +
         (this.ruleMode === 'SIMPLE' ? ' · 简化' : ''),
       seats: seats,
@@ -367,8 +411,37 @@ Page({
 
   onPass: function () {
     var res = controller.pass(this.game, this.activeSeat);
-    if (!res.ok) { wx.showToast({ title: ERROR_TEXT[res.error] || '不能不出', icon: 'none' }); return; }
+    if (!res.ok) {
+      // 被强制规则拦住时，第一次讲清楚"凭什么我必须出"
+      if (res.error === 'FORCED_TO_PLAY') { this.explainForce(); return; }
+      wx.showToast({ title: ERROR_TEXT[res.error] || '不能不出', icon: 'none' });
+      return;
+    }
     this.afterAction(res);
+  },
+
+  // [DESIGN 2026-11-19] 强制规则一次性教学：每条规则只在第一次拦住玩家时弹窗，
+  // 之后退化为底部小字提示。既解释了规则，又不会每局重复打扰。
+  explainForce: function () {
+    var view = controller.getView(this.game, this.activeSeat);
+    var flags = (view.public.forceFlags || []).filter(function (f) { return !!FLAG_TEXT[f]; });
+    if (!flags.length) { wx.showToast({ title: '这一手不能不出', icon: 'none' }); return; }
+    var flag = flags[0];
+    var seen = [];
+    try { seen = wx.getStorageSync('sbm_forcetip') || []; } catch (e) {}
+    if (!Array.isArray(seen)) seen = [];
+    if (seen.indexOf(flag) >= 0) {
+      wx.showToast({ title: '必须' + FLAG_TEXT[flag], icon: 'none' });
+      return;
+    }
+    seen.push(flag);
+    try { wx.setStorageSync('sbm_forcetip', seen); } catch (e) {}
+    wx.showModal({
+      title: '本地规矩',
+      content: FORCE_DETAIL[flag] || FLAG_TEXT[flag],
+      showCancel: false,
+      confirmText: '知道了'
+    });
   },
 
   onHint: function () {
@@ -469,13 +542,25 @@ Page({
     var roundList = s.scores.slice().sort(function (a, b) { return a.seat - b.seat; }).map(function (row) {
       return { seat: row.seat, name: row.name, total: totals[row.seat] || 0 };
     });
+    // [DESIGN 2026-11-19] 逐局记录。旧实现轮次结束只给一个总分，玩家看不出那 20 多分的差距
+    // 是哪一局丢的，输了也不知道输在哪。现在把每局自己的得分串起来展示。
+    var myDelta = s.scores.filter(function (x) { return x.seat === 0; })[0].delta;
+    var history = (this.roundHistory || []).concat([{
+      no: this.roundIndex, delta: myDelta, winnerSeat: g.winnerSeat
+    }]);
+    // [DESIGN 2026-11-19] 下一局交给末位（名次最后）先出，避免先手运气在多局里滚雪球。
+    var lastRow = s.scores.slice().sort(function (a, b) { return b.rank - a.rank; })[0];
+    var nextFirstSeat = lastRow ? lastRow.seat : 0;
     if (roundDone) app.clearRound();
     else {
       app.saveRound({
         index: this.roundIndex + 1, size: this.roundSize, totals: totals,
-        mode: this.mode, count: this.count, level: this.level
+        mode: this.mode, count: this.count, level: this.level,
+        nextFirstSeat: nextFirstSeat, history: history
       });
     }
+    // 每日挑战：同一天只保留最好的一次，可以重玩刷分
+    if (this.daily) this.saveDaily(myDelta, won);
 
     // 结算数据存全局，结算页读取
     app.globalData.lastResult = {
@@ -485,9 +570,10 @@ Page({
       won: won, hotseat: this.hotseat,
       // 炸弹倍率与轮次进度
       multiplier: s.multiplier || 1, bombPoints: s.bombPoints || 0,
-      round: { index: this.roundIndex, size: this.roundSize, done: roundDone, totals: roundList },
+      round: { index: this.roundIndex, size: this.roundSize, done: roundDone, totals: roundList, history: history },
       // [RELEASE 2026-11-18] 记录本局参数，"再来一局"沿用原模式/人数/难度，不再回落成 3 人普通。
       mode: this.mode, level: this.level, count: this.count,
+      daily: this.daily,
       ruleSetId: g.config.ruleSetId,
       time: new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
     };
@@ -495,6 +581,17 @@ Page({
     setTimeout(function () {
       wx.redirectTo({ url: '/pages/result/result' });
     }, 500);
+  },
+
+  // 每日挑战成绩：同一天只保留最高分，可重玩刷新
+  saveDaily: function (delta, won) {
+    var rec = { date: this.dailyDate, delta: delta, won: !!won, at: Date.now() };
+    var prev = null;
+    try { prev = wx.getStorageSync('sbm_daily') || null; } catch (e) {}
+    var better = !prev || prev.date !== rec.date || delta > (prev.delta === undefined ? -999 : prev.delta);
+    if (better) {
+      try { wx.setStorageSync('sbm_daily', rec); } catch (e) {}
+    }
   },
 
   onRestart: function () {

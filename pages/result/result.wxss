@@ -19,6 +19,14 @@
 .total-val.up { color: #E05A4E; }
 .total-val.down { color: #6FB98A; }
 .total-tip { font-size: 22rpx; color: var(--gold-dim); margin-top: 14rpx; }
+.hist-block { margin-top: 18rpx; }
+.hist-grid { display: flex; gap: 10rpx; margin-top: 10rpx; }
+.hist-cell { flex: 1; text-align: center; background: rgba(232,197,122,0.06); border-radius: 10rpx; padding: 10rpx 0; }
+.hist-idx { font-size: 20rpx; color: var(--gold-dim); }
+.hist-val { font-size: 26rpx; font-weight: 500; }
+.hist-val.up { color: #E05A4E; }
+.hist-val.down { color: #6FB98A; }
+.hist-val.flat { color: var(--gold-dim); }
 .poster-canvas { position: fixed; left: -9999px; top: 0; width: 375px; height: 500px; }
 .score-row {
   display: flex; align-items: center; justify-content: space-between;

@@ -165,6 +165,24 @@ function walkSize(p) {
 const packKB = walkSize(root) / 1024;
 ok(packKB < 2048, '预估打包体积 < 2MB（实际 ' + packKB.toFixed(0) + ' KB）');
 
+console.log('\n=== 12. 游戏性优化（牌堆 / 先手 / 教学 / 每日挑战 / 逐局） ===');
+ok(/removeRanks: \{ '2': 1 \}, totalCards: 51/.test(bundleSrc), '3 人局改为 51 张（保留 4 张 A、3 张 2）');
+ok(/typeof opt\.firstSeat === 'number'/.test(bundleSrc), '引擎支持指定先出座位');
+ok(/firstHandDone: explicitFirst/.test(bundleSrc), '指定先手时跳过"首手含红桃3"约束');
+ok(/nextFirstSeat/.test(gameSrc), '轮次内由上一局末位先出');
+ok(/roundHistory/.test(gameSrc), '逐局得分记录在牌桌侧维护');
+ok(/history: history/.test(gameSrc), '轮次状态携带逐局得分');
+ok(/FORCE_DETAIL/.test(gameSrc) && /explainForce/.test(gameSrc), '强制规则首次拦截时弹窗解释');
+ok(/sbm_forcetip/.test(gameSrc), '强制规则教学只提示一次（本地去重）');
+ok(/daily === '1'/.test(gameSrc) && /saveDaily/.test(gameSrc), '每日挑战：固定 seed 单局');
+ok(/dailySeed/.test(gameSrc), '每日挑战用日期作为 seed');
+ok(/onDaily/.test(indexSrc), '首页有每日挑战入口');
+ok(/dailyDesc/.test(indexWxml), '首页展示今日挑战成绩');
+ok(/history/.test(resultSrc) && /hist-grid/.test(resultWxml), '结算页展示逐局得分');
+ok(/roundSize > 1/.test(resultWxml), '单局模式不显示轮次面板');
+ok(/51 张/.test(fs.readFileSync(path.join(root, 'pages/rules/rules.wxml'), 'utf8')), '规则页牌堆文案已同步');
+ok(/末位先出/.test(fs.readFileSync(path.join(root, 'pages/rules/rules.wxml'), 'utf8')), '规则页说明末位先出');
+
 console.log('\n总计 PASS=' + pass + '  FAIL=' + fail + (todo ? '  TODO=' + todo : ''));
 if (todo) console.log('TODO 项需在小程序后台/资质侧人工完成，不影响代码构建。');
 process.exit(fail ? 1 : 0);

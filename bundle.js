@@ -43,9 +43,15 @@ const TYPE_LABEL = {
 
 function defaultRuleConfig(playerCount) {
   var n = playerCount || 3;
-  var deck = n === 4
-    ? { removeJokers: true, removeRanks: {}, totalCards: 52 }
-    : { removeJokers: true, removeRanks: { '2': 3, 'A': 1 }, totalCards: 48 };
+  // [DESIGN 2026-11-19] 牌堆修正。旧版 2/3 人局统一去掉 3 张 2 + 1 张 A，全场只剩 1 张 2、3 张 A。
+  // 实测后果（tools/playtest.js）：3 人局仅 4.0% 的对局出现炸弹，96% 的对局倍率停在 ×1，
+  // 倍率制形同虚设；"见 2 必出炸弹"这条规则也几乎无从触发，因为整局只有一张 2。
+  // 现在：4 人 52 张全牌；3 人 51 张（只去 1 张 2，凑 17 张整除）；2 人 52 张全牌（每人 26 张）。
+  // 代价是 3 人局每人多 1 张、单局略长，换来炸弹与强制规则真正可玩。
+  var deck;
+  if (n === 4) deck = { removeJokers: true, removeRanks: {}, totalCards: 52 };
+  else if (n === 3) deck = { removeJokers: true, removeRanks: { '2': 1 }, totalCards: 51 };
+  else deck = { removeJokers: true, removeRanks: {}, totalCards: 52 };
   return {
     ruleSetId: 'sbm-lmz-v1',
     playerCount: n,
@@ -651,9 +657,18 @@ function createGame(options) {
   var seed = typeof opt.seed === 'number' ? opt.seed : (Date.now() >>> 0);
   var deck = engine.shuffle(engine.createDeck(config), seed);
   var hands = engine.deal(deck, playerCount);
+  // [DESIGN 2026-11-19] 可指定先出座位：轮次内从第 2 局起由上一局末位先出。
+  // 说明清楚一件事：每局红桃 3 都是独立随机，先手优势（实测先手者胜率 40.5%）不会累积到同一个人，
+  // 所以这不是"消除优势"，而是给落后方一次起手补偿，让一轮之内有翻盘窗口。
+  // 指定了先出座位就必然不是红桃 3 持有者，因此首手"必须含红桃3"的约束自动失效。
+  var explicitFirst = typeof opt.firstSeat === 'number' &&
+    opt.firstSeat >= 0 && opt.firstSeat < playerCount;
   var firstSeat = 0;
-  for (var i = 0; i < hands.length; i++) {
-    if (hands[i].some(function (c) { return c.id === 'H3'; })) { firstSeat = i; break; }
+  if (explicitFirst) firstSeat = opt.firstSeat;
+  else {
+    for (var i = 0; i < hands.length; i++) {
+      if (hands[i].some(function (c) { return c.id === 'H3'; })) { firstSeat = i; break; }
+    }
   }
   var difficulties = opt.difficulties || ['NORMAL', 'NORMAL', 'NORMAL', 'NORMAL'];
   var players = hands.map(function (hand, seat) {
@@ -683,7 +698,7 @@ function createGame(options) {
     status: 'PLAYING',
     winnerSeat: null,
     settlement: null,
-    firstHandDone: false
+    firstHandDone: explicitFirst
   };
 }
 
