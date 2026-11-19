@@ -11,6 +11,7 @@
       <view class="result-title">{{title}}</view>
       <view class="result-sub">{{roundLabel ? roundLabel + ' · ' : ''}}娱乐积分 · {{time}}</view>
       <view wx:if="{{multiText}}" class="result-multi">{{multiText}}</view>
+      <view wx:if="{{dailyTip}}" class="daily-tip">{{dailyTip}}</view>
     </view>
 
     <view class="panel">

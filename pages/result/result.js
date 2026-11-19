@@ -9,7 +9,7 @@ Page({
     title: '', ruleSetId: '', time: '', scores: [], hotseat: false,
     largeFont: false,
     roundIndex: 0, roundSize: 0, roundDone: false, roundLabel: '', againLabel: '再来一局',
-    totals: [], history: [], multiplier: 1, multiText: ''
+    totals: [], history: [], multiplier: 1, multiText: '', dailyTip: ''
   },
 
   onLoad: function () {
@@ -33,7 +33,8 @@ Page({
     var roundLabel = rd ? ('第 ' + rd.index + ' / ' + rd.size + ' 局') : '';
     var againLabel = rd && !rd.done ? ('下一局（第 ' + (rd.index + 1) + ' 局）') : '开始新一轮';
     // 每日挑战是单局制，按钮语义要跟着变
-    if (r.daily) againLabel = '再战一次';
+    if (r.daily) againLabel = '再练一次';
+    var dailyTip = r.daily ? '每日挑战成绩以首次完成为准，重玩不计入今日成绩' : '';
 
     this.setData({
       noData: false,
@@ -53,12 +54,13 @@ Page({
       totals: rd && rd.totals ? rd.totals.slice().sort(function (a, b) { return b.total - a.total; }) : [],
       history: rd && rd.history ? rd.history.slice() : [],
       multiplier: r.multiplier || 1,
-      multiText: (r.multiplier && r.multiplier > 1) ? ('本局炸弹翻倍 ×' + r.multiplier) : ''
+      multiText: (r.multiplier && r.multiplier > 1) ? ('本局炸弹翻倍 ×' + r.multiplier) : '',
+      dailyTip: dailyTip
     });
 
-    // 预热战绩图，分享时能直接带上图片（失败也不影响页面）
-    var self = this;
-    setTimeout(function () { self.ensurePoster(); }, 500);
+    // [FIX 2026-11-19] 不再在进页面时预画战绩图。canvasToTempFilePath 会在主线程
+    // 画一张 750×1000 的图并落一个临时文件，而九成玩家不会点"保存"。改为点击时生成，
+    // 分享则使用微信默认页面截图。
   },
 
   // 再来一局沿用本局的模式 / 人数 / 难度；旧实现固定 NORMAL，玩家选困难打完却变回普通。

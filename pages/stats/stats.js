@@ -32,11 +32,13 @@ Page({
       leaderboard: SBM.store.getLocalLeaderboard(),
       // [RELEASE 2026-11-18] 记录补上时间与名次，旧实现只有"胜/负 + 积分"，看不出是哪一局。
       records: records.slice(0, 12).map(function (r) {
+        var hot = r.mode === 'HOTSEAT';
         return {
           winner: r.winner,
-          resultText: r.winner ? '胜' : '负',
-          modeText: r.mode === 'HOTSEAT' ? '热座' : '人机',
-          rankText: r.rank ? ('第 ' + r.rank + ' 名') : '',
+          // 热座没有"胜负"主体，标成"—"而不是"负"，否则一局热座会显示三条"负"
+          resultText: hot ? '—' : (r.winner ? '胜' : '负'),
+          modeText: hot ? '热座' : '人机',
+          rankText: hot ? '' : (r.rank ? ('第 ' + r.rank + ' 名') : ''),
           timeText: fmtTime(r.createdAt),
           delta: r.delta
         };

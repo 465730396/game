@@ -10,6 +10,7 @@
 .result-title { font-size: 40rpx; font-weight: 500; color: var(--ink); }
 .result-sub { font-size: 22rpx; color: var(--gold-dim); margin-top: 12rpx; }
 .result-multi { font-size: 24rpx; color: var(--red); margin-top: 10rpx; }
+.daily-tip { font-size: 20rpx; color: var(--gold-dim); margin-top: 12rpx; line-height: 1.5; }
 .total-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14rpx 0; border-bottom: 1rpx solid rgba(232,197,122,0.08);

@@ -52,6 +52,36 @@ function setupUpdate() {
   } catch (e) {}
 }
 
+// [FIX 2026-11-19] 续局快照带版本号并做结构校验。
+// 旧实现只查 status / players.length，遇到旧版本结构或 activeSeat 越界时，
+// controller.getView 里 players[seat].hand 会直接抛错 —— 白屏，且 onError 只记日志，
+// 玩家没有任何出口。现在校验不过就丢弃快照、开新局，宁可不续也不能白屏。
+var SESSION_VERSION = 2;
+
+function isInt(v) { return typeof v === 'number' && isFinite(v) && Math.floor(v) === v; }
+
+function validSession(s) {
+  if (!s || typeof s !== 'object') return false;
+  if (s.v !== SESSION_VERSION) return false;
+  var g = s.game;
+  if (!g || typeof g !== 'object') return false;
+  if (g.status !== 'PLAYING') return false;
+  if (!Array.isArray(g.players) || g.players.length < 2 || g.players.length > 4) return false;
+  if (!isInt(g.currentSeat) || g.currentSeat < 0 || g.currentSeat >= g.players.length) return false;
+  if (!Array.isArray(g.playedCards) || !Array.isArray(g.playLog)) return false;
+  if (!g.config || !g.config.deck || !g.config.deck.removeRanks || !g.config.scoring) return false;
+  var ok = g.players.every(function (p) {
+    return p && typeof p === 'object' && typeof p.name === 'string' &&
+      Array.isArray(p.hand) && p.hand.length > 0;
+  });
+  if (!ok) return false;
+  if (s.activeSeat !== undefined && s.activeSeat !== null &&
+      (!isInt(s.activeSeat) || s.activeSeat < 0 || s.activeSeat >= g.players.length)) return false;
+  if (s.roundIndex !== undefined && (!isInt(s.roundIndex) || s.roundIndex < 1)) return false;
+  if (s.roundTotals !== undefined && (typeof s.roundTotals !== 'object' || s.roundTotals === null)) return false;
+  return true;
+}
+
 App({
   globalData: {
     SBM: SBM,
@@ -65,6 +95,13 @@ App({
     this.globalData.settings = SBM.store.getSettings();
     // 让音频模块读取实时设置（音效/振动开关由用户控制）
     audio.configure(function () { return self.getSettings(); });
+    // [FIX 2026-11-19] iOS 打开静音键后，InnerAudioContext 默认完全不出声，
+    // 玩家会以为游戏没音效。牌类游戏的出牌声是核心反馈，必须跟随媒体音量而非静音键。
+    try {
+      if (wx.setInnerAudioOption) {
+        wx.setInnerAudioOption({ obeyMuteSwitch: false, mixWithOther: true });
+      }
+    } catch (e) {}
     try {
       var win = wx.getWindowInfo ? wx.getWindowInfo() : wx.getSystemInfoSync();
       var safe = win.screenHeight && win.safeArea ? (win.screenHeight - win.safeArea.bottom) : 0;
@@ -103,13 +140,23 @@ App({
 
   // 断点续局：对局快照存 storage
   saveSession: function (session) {
+    if (!session || typeof session !== 'object') return null;
+    session.v = SESSION_VERSION;
     this.globalData.session = session;
     try { wx.setStorageSync('sbm_session', session); } catch (e) {}
+    return session;
   },
 
   getSession: function () {
-    if (this.globalData.session) return this.globalData.session;
-    try { return wx.getStorageSync('sbm_session') || null; } catch (e) { return null; }
+    var s = this.globalData.session;
+    if (!s) {
+      try { s = wx.getStorageSync('sbm_session') || null; } catch (e) { s = null; }
+    }
+    if (!s) return null;
+    // 校验失败立即清掉：留着只会在每次启动时重复踩同一个坑
+    if (!validSession(s)) { this.clearSession(); return null; }
+    this.globalData.session = s;
+    return s;
   },
 
   clearSession: function () {

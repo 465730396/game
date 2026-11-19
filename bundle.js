@@ -893,7 +893,11 @@ function write(key, value) {
   }
 }
 
-var DEFAULT_SETTINGS = { bgm: false, dialect: false, largeFont: true, vibration: false, ruleMode: 'CLASSIC' };
+// [FIX 2026-11-19] 音效与振动默认打开。此前四项全 false，而 audio.prompt() 整个受
+// dialect 控制——新玩家第一局一声不响、不振动，只会怀疑"是不是卡了"。
+// 牌类游戏的核心手感就是出牌那一声和炸弹的震感，不能要求玩家先去设置页找开关。
+// BGM 仍默认关闭：进页面自动放音乐是打扰，也让首次进入的审核体验变差。
+var DEFAULT_SETTINGS = { bgm: false, dialect: true, largeFont: true, vibration: true, ruleMode: 'CLASSIC' };
 
 function getSettings() {
   var saved = read('sbm_settings', {});
@@ -936,6 +940,9 @@ function getLocalLeaderboard() {
   var records = getRecords();
   var map = {};
   records.forEach(function (r) {
+    // [FIX 2026-11-19] 热座记录没有"我"这个主体，进榜只会拉进"玩家1/2/3"这类脏名字，
+    // 而且每人一条会把榜单刷满。热座单列，不计入个人榜。
+    if (r.mode === 'HOTSEAT') return;
     if (!map[r.name]) map[r.name] = { name: r.name, score: 0, games: 0 };
     map[r.name].score += r.delta;
     map[r.name].games += 1;

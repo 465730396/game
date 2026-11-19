@@ -34,7 +34,7 @@
   <view class="panel">
     <view class="panel-title">每日挑战</view>
     <view class="muted">{{dailyDesc}}</view>
-    <button class="btn btn-block start-btn" bindtap="onDaily">{{dailyDone ? '再 战 一 次' : '开 始 挑 战'}}</button>
+    <button class="btn btn-block start-btn" bindtap="onDaily">{{dailyDone ? '再 练 一 次' : '开 始 挑 战'}}</button>
   </view>
 
   <view class="panel">

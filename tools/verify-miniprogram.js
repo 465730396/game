@@ -183,6 +183,26 @@ ok(/roundSize > 1/.test(resultWxml), '单局模式不显示轮次面板');
 ok(/51 张/.test(fs.readFileSync(path.join(root, 'pages/rules/rules.wxml'), 'utf8')), '规则页牌堆文案已同步');
 ok(/末位先出/.test(fs.readFileSync(path.join(root, 'pages/rules/rules.wxml'), 'utf8')), '规则页说明末位先出');
 
+console.log('\n=== 13. 运行时事故修复（快照 / 轮次 / 跳转 / 遮挡 / 静音） ===');
+ok(/SESSION_VERSION/.test(appSrc) && /validSession/.test(appSrc), '续局快照带版本号并做结构校验');
+ok(/setInnerAudioOption/.test(appSrc) && /obeyMuteSwitch:\s*false/.test(appSrc), 'iOS 静音键下仍可出声');
+ok(/if \(!this\.daily\) \{/.test(gameSrc), '每日挑战不触碰轮次进度');
+ok(/clearRedirect/.test(gameSrc) && /redirectTimer/.test(gameSrc), '结算跳转定时器可取消');
+ok(/!self\.alive \|\| self\.redirected/.test(gameSrc), '跳转前校验页面存活与重复跳转');
+ok(/hand: hidden \? \[\] : hand/.test(gameSrc), '热座交接期间不下发手牌');
+ok((gameSrc.match(/if \(this\.data\.handoff\) return;/g) || []).length >= 4, '遮罩期间四个操作入口均有二次校验');
+ok(/var DEFAULT_SETTINGS = \{ bgm: false, dialect: true/.test(bundleSrc), '音效默认开启（BGM 仍默认关闭）');
+ok(/if \(r\.mode === 'HOTSEAT'\) return;/.test(bundleSrc), '热座记录不进个人排行榜');
+ok(/if \(this\.hotseat\) \{[\s\S]{0,200}'热座对局'/.test(gameSrc), '热座一局只写一条记录');
+ok(/prev\.date !== rec\.date/.test(gameSrc) && !/better/.test(gameSrc), '每日挑战成绩以首次为准');
+ok(!/setTimeout\(function \(\) \{ self\.ensurePoster/.test(resultSrc), '结算页不再预画战绩图');
+ok(/counts: \[3, 4\]/.test(indexSrc) && /2 人场暂时下线/.test(indexSrc), '2 人场已下线（引擎保留）');
+const sitemap = readJSON('sitemap.json');
+const smRules = (sitemap && sitemap.rules) || [];
+ok(smRules.length && smRules[0].action === 'allow' && smRules[0].page === 'pages/index/index', 'sitemap 只放开首页');
+ok(smRules.some(function (r) { return r.action === 'disallow' && r.page === '*'; }), 'sitemap 其余页面不索引');
+ok(fs.existsSync(path.join(root, 'tools/test-pages.js')), '页面级回归脚本存在');
+
 console.log('\n总计 PASS=' + pass + '  FAIL=' + fail + (todo ? '  TODO=' + todo : ''));
 if (todo) console.log('TODO 项需在小程序后台/资质侧人工完成，不影响代码构建。');
 process.exit(fail ? 1 : 0);

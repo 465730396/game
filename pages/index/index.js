@@ -7,7 +7,10 @@ var audio = require('../../utils/audio.js');
 Page({
   data: {
     largeFont: false,
-    counts: [2, 3, 4],
+    // [FIX 2026-11-19] 2 人场暂时下线：52 张全牌下每人 26 张，牌宽 92rpx 时一屏只能放 7 张，
+    // 找一张牌要横滑 4 屏，实际不可玩。而压到 16~17 张就必须砍掉 2 或 A，
+    // "见A必出2""见2必出炸弹"两条规则会同时失效。引擎仍支持 2 人，等手牌叠压布局做完再放开。
+    counts: [3, 4],
     levels: [{ value: 'EASY', label: '简单' }, { value: 'NORMAL', label: '普通' }, { value: 'HARD', label: '困难' }],
     aiCount: 3,
     aiLevel: 'NORMAL',
@@ -42,8 +45,8 @@ Page({
       sessionDesc: alive ? this.buildSessionDesc(s) : '',
       dailyDone: doneToday,
       dailyDesc: doneToday
-        ? ('今日最佳 ' + (daily.delta > 0 ? '+' : '') + daily.delta + ' 分 · 3 人普通场')
-        : '全服同一副牌，单局限定 · 3 人普通场'
+        ? ('今日成绩 ' + (daily.delta > 0 ? '+' : '') + daily.delta + ' 分 · 已锁定，重玩只作练习')
+        : '每天同一副牌，单局定胜负 · 3 人普通场'
     });
     if (st.bgm) audio.startBgm(true); else audio.stopBgm();
   },

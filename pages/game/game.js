@@ -69,6 +69,11 @@ Page({
     this.fx = fx.createFX(this, '#fx');
     this.selected = [];
     this.aiTimer = null;
+    // [FIX 2026-11-19] 结算跳转是延迟 500ms 的，页面卸载不会自动清定时器。
+    // 用 alive 标记 + redirectTimer 句柄双保险，见 finishGame / onUnload。
+    this.alive = true;
+    this.redirected = false;
+    this.redirectTimer = null;
     this.audioOn = false;
     this.mode = query.mode || 'AI';
     this.level = query.level || 'NORMAL';
@@ -109,7 +114,10 @@ Page({
       if (s && s.game && s.game.status === 'PLAYING' && s.game.players && s.game.players.length) {
         game = s.game;
         this.mode = s.mode; this.level = s.level; this.count = s.count;
-        this.hotseat = !!s.hotseat; this.activeSeat = s.activeSeat || game.currentSeat;
+        this.hotseat = !!s.hotseat;
+        // 快照已由 app.getSession 校验过结构，这里只做越界兜底
+        var as = Number(s.activeSeat);
+        this.activeSeat = (as >= 0 && as < game.players.length) ? as : game.currentSeat;
         // 续局要把轮次进度一起恢复，否则累计分会从第 1 局重算
         this.roundIndex = s.roundIndex || 1;
         this.totals = s.roundTotals || {};
@@ -191,6 +199,9 @@ Page({
   },
 
   onUnload: function () {
+    // [FIX 2026-11-19] 先置 alive=false 再清定时器：结算页跳转、AI 推进都必须立刻停。
+    this.alive = false;
+    this.clearRedirect();
     this.clearAiTimer();
     audio.suspend();
     this.fx.stop();
@@ -228,6 +239,12 @@ Page({
 
   clearAiTimer: function () {
     if (this.aiTimer) { clearTimeout(this.aiTimer); this.aiTimer = null; }
+  },
+
+  // [FIX 2026-11-19] 结算跳转句柄。重开 / 退出 / 卸载都必须能取消它，
+  // 否则会出现"人手一离开，首页被结算页顶掉"或"新局刚发牌就被踢去结算"。
+  clearRedirect: function () {
+    if (this.redirectTimer) { clearTimeout(this.redirectTimer); this.redirectTimer = null; }
   },
 
   saveSnapshot: function () {
@@ -344,7 +361,10 @@ Page({
       forceText: hidden ? '' : view.public.forceFlags.map(function (f) { return FLAG_TEXT[f] || f; }).join(' · '),
       declaredText: hidden ? '' : declaredText,
       statusText: st,
-      hand: hand,
+      // [FIX 2026-11-19] 交接遮罩期间不再把真实手牌下发给视图层。旧实现只是"盖住"，
+      // 手牌数据仍在渲染树里；遮罩 rgba 0.92 仍有 8% 透光，加上遮罩本身依赖 setData
+      // 时序，等于把"别偷看"完全押在一层贴图上。现在数据层面直接清空。
+      hand: hidden ? [] : hand,
       handTitle: hidden ? '手牌已遮挡' : (this.hotseat ? g.players[this.activeSeat].name + ' 的手牌' : '我的手牌'),
       canPlay: myTurn && view.legalPlays.length > 0 && this.selected.length > 0,
       canPass: myTurn && view.canPass,
@@ -377,6 +397,9 @@ Page({
   },
 
   onPlay: function () {
+    // [FIX 2026-11-19] 遮罩是唯一视觉防线，逻辑层必须再挡一次，
+    // 否则遮罩一帧延迟或点击穿透就能替下家出牌。
+    if (this.data.handoff) return;
     if (!this.selected.length) { wx.showToast({ title: '请先选牌', icon: 'none' }); return; }
     var res = controller.play(this.game, this.activeSeat, this.selected);
     if (!res.ok) { this.explainError(res.error); return; }
@@ -410,6 +433,7 @@ Page({
   },
 
   onPass: function () {
+    if (this.data.handoff) return;
     var res = controller.pass(this.game, this.activeSeat);
     if (!res.ok) {
       // 被强制规则拦住时，第一次讲清楚"凭什么我必须出"
@@ -445,6 +469,7 @@ Page({
   },
 
   onHint: function () {
+    if (this.data.handoff) return;
     var view = controller.getView(this.game, this.activeSeat);
     if (!view.legalPlays.length) { wx.showToast({ title: '没有能压的牌，请点「不出」', icon: 'none' }); return; }
     this.selected = view.legalPlays[0].cards.map(function (c) { return c.id; });
@@ -519,16 +544,21 @@ Page({
     if (!g || !s) { wx.reLaunch({ url: '/pages/index/index' }); return; }
     var won = g.winnerSeat === 0;
 
-    s.scores.forEach(function (row) {
-      if (!this.hotseat && row.seat !== 0) return;
+    // [FIX 2026-11-19] 热座一局只写一条聚合记录。旧实现按座位各写一条（3~4 条），
+    // 但 updateStats 只 +1 局，统计页于是出现"总局数 10 / 记录 32 条"且累计积分恒为 0；
+    // 座位名还会污染个人排行榜。
+    if (this.hotseat) {
       SBM.store.addRecord({
-        name: row.name, mode: this.hotseat ? 'HOTSEAT' : 'AI', delta: row.delta, rank: row.rank,
-        winner: row.seat === g.winnerSeat, ruleSetId: g.config.ruleSetId, createdAt: Date.now()
+        name: '热座对局', mode: 'HOTSEAT', delta: 0, rank: 0, winner: false,
+        ruleSetId: g.config.ruleSetId, createdAt: Date.now()
       });
-    }, this);
-    if (this.hotseat) SBM.store.updateStats(false, 0);
-    else {
+      SBM.store.updateStats(false, 0);
+    } else {
       var human = s.scores.filter(function (x) { return x.seat === 0; })[0];
+      SBM.store.addRecord({
+        name: human.name, mode: 'AI', delta: human.delta, rank: human.rank,
+        winner: human.seat === g.winnerSeat, ruleSetId: g.config.ruleSetId, createdAt: Date.now()
+      });
       SBM.store.updateStats(won, human.delta);
     }
     audio.prompt(won ? 'YOUR_TURN' : 'PLAY');
@@ -551,13 +581,18 @@ Page({
     // [DESIGN 2026-11-19] 下一局交给末位（名次最后）先出，避免先手运气在多局里滚雪球。
     var lastRow = s.scores.slice().sort(function (a, b) { return b.rank - a.rank; })[0];
     var nextFirstSeat = lastRow ? lastRow.seat : 0;
-    if (roundDone) app.clearRound();
-    else {
-      app.saveRound({
-        index: this.roundIndex + 1, size: this.roundSize, totals: totals,
-        mode: this.mode, count: this.count, level: this.level,
-        nextFirstSeat: nextFirstSeat, history: history
-      });
+    // [FIX 2026-11-19] 每日挑战是独立单局，绝不能碰玩家进行中的轮次进度。
+    // 旧实现在这里无条件 clearRound()（daily 时 roundSize=1，roundDone 恒为 true），
+    // 与 onLoad 里"daily 不清轮次"的保护自相矛盾：玩家打一把挑战，5 局累计分就没了。
+    if (!this.daily) {
+      if (roundDone) app.clearRound();
+      else {
+        app.saveRound({
+          index: this.roundIndex + 1, size: this.roundSize, totals: totals,
+          mode: this.mode, count: this.count, level: this.level,
+          nextFirstSeat: nextFirstSeat, history: history
+        });
+      }
     }
     // 每日挑战：同一天只保留最好的一次，可以重玩刷分
     if (this.daily) this.saveDaily(myDelta, won);
@@ -578,29 +613,46 @@ Page({
       time: new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
     };
     var self = this;
-    setTimeout(function () {
+    this.clearRedirect();
+    // [FIX 2026-11-19] 定时跳转必须能自证页面还在、且对局仍是刚结算的那一局。
+    // 旧实现直接 redirectTo：玩家在 500ms 内返回首页，首页会被结算页顶掉；
+    // 在 500ms 内点"重开"，新局刚发牌就会被踢去上一局的结算页。
+    this.redirectTimer = setTimeout(function () {
+      self.redirectTimer = null;
+      if (!self.alive || self.redirected) return;
+      if (!self.game || self.game.status !== 'FINISHED') return;
+      self.redirected = true;
       wx.redirectTo({ url: '/pages/result/result' });
     }, 500);
   },
 
-  // 每日挑战成绩：同一天只保留最高分，可重玩刷新
+  // 每日挑战成绩：当天以第一次完成为准，之后重开只作练习
   saveDaily: function (delta, won) {
     var rec = { date: this.dailyDate, delta: delta, won: !!won, at: Date.now() };
     var prev = null;
     try { prev = wx.getStorageSync('sbm_daily') || null; } catch (e) {}
-    var better = !prev || prev.date !== rec.date || delta > (prev.delta === undefined ? -999 : prev.delta);
-    if (better) {
+    // [FIX 2026-11-19] 旧实现"取当天最高分"，而重开沿用固定 seed（实测同一副牌、
+    // 17 张手牌完全一致），等于允许无限试错直到打赢 —— "单局定胜负"直接失效。
+    // 现在首次完成即锁定，重开不再写入，挑战的一次性张力才成立。
+    if (!prev || prev.date !== rec.date) {
       try { wx.setStorageSync('sbm_daily', rec); } catch (e) {}
     }
   },
 
   onRestart: function () {
     var self = this;
+    var finished = this.game && this.game.status === 'FINISHED';
+    var msg = this.daily
+      ? '重开为练习局，今日成绩已锁定、不会被覆盖。'
+      : (finished ? '开新的一局？' : '放弃当前这局，重新发牌？');
     wx.showModal({
       title: '重新开始',
-      content: '放弃当前这局，重新发牌？',
+      content: msg,
       success: function (r) {
         if (!r.confirm) return;
+        // [FIX 2026-11-19] 取消待执行的结算跳转，否则新局会被上一局的结算页顶掉
+        self.clearRedirect();
+        self.redirected = false;
         self.clearAiTimer();
         self.finished = false;
         self.game = self.createGame();
@@ -636,6 +688,9 @@ Page({
       cancelText: '继续打',
       success: function (r) {
         if (!r.confirm) return;
+        // 取消待执行的结算跳转，避免"已退出却仍被拽到结算页"
+        self.clearRedirect();
+        self.finished = true;
         self.clearAiTimer();
         app.recordEscape();
         app.clearRound();   // 中途逃跑视为放弃本轮，避免下次开局接着用旧的累计分

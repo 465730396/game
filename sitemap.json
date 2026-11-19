@@ -1,8 +1,12 @@
 {
-  "desc": "关于本文件的更多信息，请参考文档 https://developers.weixin.qq.com/miniprogram/dev/framework/sitemap.html",
+  "desc": "只放开首页：牌桌依赖 query 参数，结算页无数据时是空态，被微信搜索直达会被判为「页面无实质内容」。",
   "rules": [
     {
       "action": "allow",
+      "page": "pages/index/index"
+    },
+    {
+      "action": "disallow",
       "page": "*"
     }
   ]
