@@ -43,15 +43,15 @@ const TYPE_LABEL = {
 
 function defaultRuleConfig(playerCount) {
   var n = playerCount || 3;
-  // [DESIGN 2026-11-19] 牌堆修正。旧版 2/3 人局统一去掉 3 张 2 + 1 张 A，全场只剩 1 张 2、3 张 A。
-  // 实测后果（tools/playtest.js）：3 人局仅 4.0% 的对局出现炸弹，96% 的对局倍率停在 ×1，
-  // 倍率制形同虚设；"见 2 必出炸弹"这条规则也几乎无从触发，因为整局只有一张 2。
-  // 现在：4 人 52 张全牌；3 人 51 张（只去 1 张 2，凑 17 张整除）；2 人 52 张全牌（每人 26 张）。
-  // 代价是 3 人局每人多 1 张、单局略长，换来炸弹与强制规则真正可玩。
-  var deck;
-  if (n === 4) deck = { removeJokers: true, removeRanks: {}, totalCards: 52 };
-  else if (n === 3) deck = { removeJokers: true, removeRanks: { '2': 1 }, totalCards: 51 };
-  else deck = { removeJokers: true, removeRanks: {}, totalCards: 52 };
+  // [FIX 2026-11-19] 牌堆回滚为「全场只有 1 张 2」。
+  // 上一版为了把炸弹/倍率打出频率抬起来，把 2 从 1 张加到 3~4 张（3 人 51 张、4 人 52 张全牌），
+  // 这是拿规则本体换机制可玩性，是错的：捉老麻子里 2 是唯一的绝对大牌，
+  // 「见 A 必出 2」「见 2 必出炸弹」两条规矩的张力，全靠这张 2 稀缺才成立。
+  // 多发两张 2 之后，见 A 几乎每局都能被 2 压住，见 2 必炸也从稀有事变成常态，规则强度整体走样。
+  // 现恢复标准牌堆：一副牌去大小王，再去 3 张 2（只留 1 张）、去 1 张 A（留 3 张，够组天炸 AAA）= 48 张。
+  // 48 张可被 2/3/4 人整除（24/16/12），三种人数共用一个牌堆，不再按人数变形。
+  // 炸弹频率偏低是这套规则的固有结果，靠"打得少但打得响"的呈现解决，不再动牌堆。
+  var deck = { removeJokers: true, removeRanks: { '2': 3, 'A': 1 }, totalCards: 48 };
   return {
     ruleSetId: 'sbm-lmz-v1',
     playerCount: n,
@@ -70,11 +70,18 @@ function defaultRuleConfig(playerCount) {
     forceRules: {
       seeKPlayA: true, seePairKPlayPairA: true,
       seeAPlay2: true, see2PlayBomb: true,
-      unusedBombVoid: true, tripleABombCanPass: true
+      // unusedBombVoid（攥着炸弹不打就作废）：倍率制下没打出去的炸弹本来就不参与翻倍，
+      // 这条规矩由计分规则天然满足，不需要单独记账。bombVoid 字段保留是为了兼容旧快照。
+      unusedBombVoid: true,
+      // tripleABombCanPass：手上只有三个 A（天炸）、没有四炸时，"见 2 必出炸弹"不强制。
+      tripleABombCanPass: true
     },
     declareCards: { enabled: true, threshold: 3, previousMustPlayMax: false },
     // [FIX 2026-11-18] cards 由 '3333' 改为 'AAA'：实际天炸是三张 A，原值与实现矛盾（且该字段未被读取）。
-    skyBomb: { enabled: true, cards: 'AAA', firstHandOnly: true },
+    // [FIX 2026-11-19] firstHandOnly 由 true 改为 false：该字段从未被读取，等于悄悄承诺了
+    // "天炸只能首手出"却按"随时可出"执行。规则页写的是"天炸 AAA/AAAA，最大牌型"，
+    // 现在把配置改成与实现一致，不再留一条骗人的开关。
+    skyBomb: { enabled: true, cards: 'AAA', firstHandOnly: false },
     // [DESIGN 2026-11-18] 炸弹由"加分"改为"倍率"：旧实现 bombBonus=2 仅相当于一局输赢的 6%，
     // 玩家没有为炸弹冒险的动机；且"自己+2、其余各-2"每打一个炸弹就让全服总分缩水，积分不守恒。
     // 现在：每出现 1 个炸弹计 1 个翻倍点（天炸计 2 点），全桌输赢按 2^点 放大并封顶。
@@ -203,8 +210,14 @@ function detectType(cards, config) {
   var straightCfg = ct.straight || {};
   var planeCfg = ct.airplane || {};
   var bombCfg = ct.bomb || {};
+  // [FIX 2026-11-19] 连对原先借用顺子的 maxRank 并写死"3 对起"，pairStraight.minGroups /
+  // maxRank / enabled 三项配置全是摆设。这里改成读自己的配置，默认值仍是 3 对、到 K，行为不变。
+  var psCfg = ct.pairStraight || {};
   var straightAllowed = makeRankAllowed(straightCfg);
   var planeAllowed = makeRankAllowed(planeCfg);
+  var pairAllowed = makeRankAllowed(psCfg);
+  var pairStraightOn = psCfg.enabled !== false;
+  var pairMinCards = (psCfg.minGroups || 3) * 2;
   var straightOn = straightCfg.enabled !== false;
   var planeOn = planeCfg.enabled !== false;
   var bombOn = bombCfg.enabled !== false;
@@ -232,7 +245,7 @@ function detectType(cards, config) {
   if (straightOn && n >= (straightCfg.minLen || 5) && counts.every(function (c) { return c === 1; }) && sortedValues.every(straightAllowed) && isConsecutive(sortedValues)) {
     return { type: TYPE.STRAIGHT, size: n, key: maxRank, ranks: ranks, label: TYPE_LABEL.STRAIGHT };
   }
-  if (straightOn && n >= 6 && n % 2 === 0 && counts.every(function (c) { return c === 2; }) && sortedValues.every(straightAllowed) && isConsecutive(sortedValues)) {
+  if (pairStraightOn && n >= pairMinCards && n % 2 === 0 && counts.every(function (c) { return c === 2; }) && sortedValues.every(pairAllowed) && isConsecutive(sortedValues)) {
     return { type: TYPE.PAIR_STRAIGHT, size: n, key: maxRank, ranks: ranks, label: TYPE_LABEL.PAIR_STRAIGHT };
   }
 
@@ -326,11 +339,16 @@ function generateCandidates(hand, config) {
     }
   });
   var valid = ranks.filter(function (r) { return RANK_VALUE[r] <= RANK_VALUE.K; });
+  // [FIX 2026-11-19] 起始长度由 i+5 改为 i+2：旧循环只枚举长度 ≥5 的连续点数，导致
+  // 连对（3 对 / 6 张起）、飞机（2 组 / 6 张起）虽然 detectType 认得，却永远进不了候选池——
+  // 提示永远不推荐、AI 一辈子不打飞机和 3 连对，牌桌状态行还会误报"无牌可压"。
+  // 实测 1350 局里连对只出现 36 次（全是 5 对 10 张），飞机只出现 1 次。
+  // 现在按各牌型自己的最短长度分别生成，顺子仍要求 ≥5 张。
   for (var i = 0; i < valid.length; i++) {
-    for (var j = i + 5; j <= valid.length; j++) {
+    for (var j = i + 2; j <= valid.length; j++) {
       var seq = valid.slice(i, j);
       if (RANK_VALUE[seq[seq.length - 1]] - RANK_VALUE[seq[0]] !== seq.length - 1) continue;
-      add(seq.map(function (r) { return groups[r][0]; }));
+      if (seq.length >= 5) add(seq.map(function (r) { return groups[r][0]; }));
       if (seq.length >= 3 && seq.every(function (r) { return groups[r].length >= 2; })) {
         add(seq.reduce(function (acc, r) { return acc.concat(groups[r].slice(0, 2)); }, []));
       }
@@ -364,8 +382,11 @@ function satisfiesForce(detected, cards, flags) {
 }
 
 function getLegalPlays(hand, lastPlay, config, forceFlags) {
-  var flags = forceFlags || computeForceFlags(lastPlay, config || defaultRuleConfig(3));
-  var all = generateCandidates(hand, config || defaultRuleConfig(3));
+  // [FIX 2026-11-19] 传进来的是"牌面触发了哪条规则"，这里再按手牌过滤一次，
+  // 任何调用方（AI、提示、UI）都不可能拿到"因手上没有 A 而误禁炸弹"的清单。
+  var cfg = config || defaultRuleConfig(3);
+  var flags = activeForceFlags(forceFlags || computeForceFlags(lastPlay, cfg), hand, cfg);
+  var all = generateCandidates(hand, cfg);
   var legal = all.filter(function (c) {
     if (!beats(c, lastPlay)) return false;
     return satisfiesForce(c.detected, c.cards, flags);
@@ -379,10 +400,39 @@ function getLegalPlays(hand, lastPlay, config, forceFlags) {
   return legal;
 }
 
-function handHasBomb(hand) {
+// [FIX 2026-11-19] tripleABombCanPass（默认 true）此前完全没被读取：配置承诺"手上只有天炸时
+// 见 2 可以不出"，实际却被强制出炸。现在按配置决定"三个 A"算不算必须打出的炸弹。
+// 四张 A 仍然算炸弹（属真正的四炸，不适用这条豁免）。牌堆只留 3 张 A，正常发牌摸不到 AAAA，
+// 这里保留 AAAA 分支是给自定义牌堆/回放快照兜底。
+function handHasBomb(hand, config) {
+  var tripleACanPass = !!(config && config.forceRules && config.forceRules.tripleABombCanPass);
   var g = groupByRank(hand || []);
   return Object.keys(g).some(function (r) {
-    return g[r].length === 4 || (r === 'A' && g[r].length === 3);
+    if (g[r].length === 4) return true;
+    if (r === 'A' && g[r].length === 3) return !tripleACanPass;
+    return false;
+  });
+}
+
+// [FIX 2026-11-19] 强制规则必须"手上有牌才生效"。
+// 旧实现里 pass() 会先看手牌（没 A 就允许过），play() 却只看标记（没 A 也不许用炸弹压），
+// 两边标准不一致，结果就是：上家出 K，我手上只有 3333 没 A —— 过得了，炸却被判"必须出 A"。
+// 现在把"是否真的持有对应牌"统一成 activeForceFlags，getView / play / pass 全部走它：
+//   · 没 A → 见K必出A 对我失效，炸弹、其它合法牌、过，全都放行；
+//   · 有 A → 规则生效，必须出 A（这是老规矩的本意）；
+//   · 只有天炸且 tripleABombCanPass=true → 见2必炸 对我失效，可以不出。
+function activeForceFlags(flags, hand, config) {
+  var list = flags || [];
+  var h = hand || [];
+  function hasRank(rank, count) {
+    return h.filter(function (c) { return c.rank === rank; }).length >= (count || 1);
+  }
+  return list.filter(function (f) {
+    if (f === 'NEED_BOMB') return handHasBomb(h, config);
+    if (f === 'NEED_A') return hasRank('A');
+    if (f === 'NEED_2') return hasRank('2');
+    if (f === 'NEED_PAIR_A') return hasRank('A', 2);
+    return true;
   });
 }
 
@@ -395,11 +445,31 @@ function canPass(lastPlay, forceFlags, hand, config) {
   function hasRank(rank, count) {
     return h.filter(function (c) { return c.rank === rank; }).length >= (count || 1);
   }
-  if (forceFlags.indexOf('NEED_BOMB') >= 0 && handHasBomb(h)) return false;
+  if (forceFlags.indexOf('NEED_BOMB') >= 0 && handHasBomb(h, config)) return false;
   if (forceFlags.indexOf('NEED_A') >= 0 && hasRank('A')) return false;
   if (forceFlags.indexOf('NEED_2') >= 0 && hasRank('2')) return false;
   if (forceFlags.indexOf('NEED_PAIR_A') >= 0 && hasRank('A', 2)) return false;
   return true;
+}
+
+// [FIX 2026-11-19] 倍率计算抽成公共函数。此前只在 settleRound 内部算一次，牌桌 HUD 拿不到，
+// 玩家打出炸弹时只有震屏，看不到"本局翻倍"，倍率机制要到结算页才第一次出现。
+// 现在牌桌与结算共用同一份口径，不会出现"桌上 ×2、结算 ×4"这类两套算法。
+function computeBombMultiplier(playLog, config) {
+  var cfg = config || defaultRuleConfig(3);
+  var bombPoints = 0;
+  (playLog || []).forEach(function (entry) {
+    if (!entry.detected || !isBomb(entry.detected)) return;
+    var isSky = entry.detected.type === TYPE.BOMB_AAA && cfg.skyBomb.enabled;
+    bombPoints += isSky ? (cfg.scoring.skyBombPoints || 2) : 1;
+  });
+  var multiplier = 1;
+  if (bombPoints > 0 && cfg.scoring.bombMode !== 'OFF') {
+    var step = cfg.scoring.bombMultiplier || 2;
+    var cap = cfg.scoring.maxMultiplier || 4;
+    multiplier = Math.min(Math.pow(step, bombPoints), cap);
+  }
+  return { bombPoints: bombPoints, multiplier: multiplier };
 }
 
 function settleRound(context) {
@@ -431,15 +501,11 @@ function settleRound(context) {
     var owner = scores.filter(function (s) { return s.seat === entry.seat; })[0];
     if (!owner) return;
     owner.bombCount += 1;
-    var isSky = entry.detected.type === TYPE.BOMB_AAA && config.skyBomb.enabled;
-    bombPoints += isSky ? (config.scoring.skyBombPoints || 2) : 1;
   });
-  var multiplier = 1;
-  if (bombPoints > 0 && config.scoring.bombMode !== 'OFF') {
-    var step = config.scoring.bombMultiplier || 2;
-    var cap = config.scoring.maxMultiplier || 4;
-    multiplier = Math.min(Math.pow(step, bombPoints), cap);
-  }
+  // 倍率与"谁炸的"无关，统一走公共函数，牌桌 HUD 用的是同一份计算。
+  var multInfo = computeBombMultiplier(playLog, config);
+  bombPoints = multInfo.bombPoints;
+  var multiplier = multInfo.multiplier;
   if (multiplier !== 1) {
     scores.forEach(function (s) { s.delta *= multiplier; });
   }
@@ -466,7 +532,9 @@ module.exports = {
   detectType: detectType, isBomb: isBomb, comparePlay: comparePlay, beats: beats,
   computeForceFlags: computeForceFlags, getLegalPlays: getLegalPlays,
   satisfiesForce: satisfiesForce, handHasBomb: handHasBomb,
-  canPass: canPass, generateCandidates: generateCandidates, settleRound: settleRound
+  activeForceFlags: activeForceFlags,
+  canPass: canPass, generateCandidates: generateCandidates, settleRound: settleRound,
+  computeBombMultiplier: computeBombMultiplier
 };
 
   });
@@ -494,9 +562,30 @@ function sortByWeakest(list) {
   });
 }
 
-function handStrengthPenalty(play, hand) {
+// [FIX 2026-11-19] 炸弹不再"一律 +100 惩罚"。
+// 旧实现让 NORMAL 档在任何局面都不敢动炸：200 局实测起手有炸 29%，真正打出只有 6%，
+// 比 EASY（25%）和 HARD（28%）都低——默认难度反而是最不会用炸弹的一档，倍率因此 94% 停在 ×1。
+// 现在按局面分级：这一手炸完就走、或对手只剩 1-2 张（炸弹是唯一拦得住的一手）算高价值；
+// 对手 3-4 张时当普通候选；开局阶段仍然留着。
+var BOMB_PENALTY = { 0: 60, 1: 24, 2: 0, 3: 0 };
+
+function bombUrgency(view, play) {
+  if (!engine.isBomb(play.detected)) return 0;
+  if (play.cards.length >= view.hand.length) return 3;   // 炸完这把就走
+  var counts = view.public.handCounts || [];
+  var least = 99;
+  for (var i = 0; i < counts.length; i++) {
+    if (i === view.seat || counts[i] <= 0) continue;
+    if (counts[i] < least) least = counts[i];
+  }
+  if (least <= 2) return 2;   // 对手即将走完，再不动炸就没机会了
+  if (least <= 4) return 1;   // 收尾阶段，炸了抢回出牌权
+  return 0;
+}
+
+function handStrengthPenalty(play, hand, view) {
   var penalty = 0;
-  if (engine.isBomb(play.detected)) penalty += 100;
+  if (engine.isBomb(play.detected)) penalty += BOMB_PENALTY[bombUrgency(view, play)];
   play.cards.forEach(function (c) { if (c.rank === '2') penalty += 12; });
   return penalty;
 }
@@ -513,9 +602,11 @@ function chooseEasy(view) {
 
 // [DESIGN 2026-11-18] 留炸判断：旧 AI 只要压得住就一定压，经常为了跟一手小牌把炸弹甩出去。
 // 当对手手牌还很宽裕（最少的一家也 > 4 张）时，把炸弹留到后面更划算。
+// [FIX 2026-11-19] 加两道放行：对手只剩 1-2 张、或炸完这把直接赢，都不该再"留"。
 function shouldHoldBomb(view, play) {
   if (!view.canPass) return false;
   if (!engine.isBomb(play.detected)) return false;
+  if (bombUrgency(view, play) >= 2) return false;
   var counts = view.public.handCounts || [];
   var least = 99;
   for (var i = 0; i < counts.length; i++) {
@@ -545,8 +636,14 @@ function chooseNormal(view) {
     var score = 0;
     score += play.cards.length * 6;
     score -= remaining * 2;
-    score -= handStrengthPenalty(play, hand);
-    if (view.public.lastPlay) score += (play.detected.key - view.public.lastPlay.detected.key) * -0.5;
+    score -= handStrengthPenalty(play, hand, view);
+    if (view.public.lastPlay) {
+      // [FIX 2026-11-19] 天炸的 key 是 99/100 的哨兵值，直接和普通牌做差会把"该炸"算成"炸不起"
+      // （一对 3 的差值是 -0.5，天炸是 -49）。这里先把 key 夹到普通牌量级再比较。
+      var myKey = Math.min(play.detected.key, 15);
+      var lastKey = Math.min(view.public.lastPlay.detected.key, 15);
+      score += (myKey - lastKey) * -0.5;
+    }
     if (view.public.declaredCounts && Object.keys(view.public.declaredCounts).length > 0) {
       score += play.cards.length >= 3 ? 4 : 0;
     }
@@ -604,7 +701,9 @@ function chooseHard(view) {
       var ownAfter = view.hand.length - play.cards.length;
       var usedBig = play.cards.filter(function (c) { return c.rank === '2' || engine.isBomb(play.detected); }).length;
       var expectedLeft = ownAfter + (usedBig ? 2 : 0);
-      var price = play.detected.key * (pressing ? 0.2 : -0.07) + play.cards.length * (pressing ? 0.45 : 0.1);
+      // [FIX 2026-11-19] key 夹到普通牌量级，避免天炸（99/100）把估价拉爆。
+      var cardKey = Math.min(play.detected.key, 15);
+      var price = cardKey * (pressing ? 0.2 : -0.07) + play.cards.length * (pressing ? 0.45 : 0.1);
       scored[j].score += oppPressure - expectedLeft + price;
     }
     used++;
@@ -706,9 +805,18 @@ function forceFlagsOf(game) {
   return engine.computeForceFlags(game.lastPlay, game.config);
 }
 
+// [FIX 2026-11-19] 规则标记只是"这种牌面触发了哪条规矩"，真正约束某个座位的是
+// "他手上有没有对应的牌"。所有判定（可出、可过、提示、UI 提示条）统一走这个函数，
+// 避免出现"过得了但炸不了"这类自相矛盾的行为。
+function activeFlagsOf(game, seat) {
+  var player = game.players[seat];
+  if (!player) return [];
+  return engine.activeForceFlags(forceFlagsOf(game), player.hand, game.config);
+}
+
 function getView(game, seat) {
   var player = game.players[seat];
-  var flags = forceFlagsOf(game);
+  var flags = activeFlagsOf(game, seat);
   var legal = engine.getLegalPlays(player.hand, game.lastPlay, game.config, flags);
   if (!game.firstHandDone) {
     legal = legal.filter(function (p) {
@@ -784,7 +892,7 @@ function play(game, seat, cardIds) {
   }
   var detected = engine.detectType(selected, game.config);
   if (!detected) return { ok: false, error: 'INVALID_CARD_TYPE' };
-  var flags = forceFlagsOf(game);
+  var flags = activeFlagsOf(game, seat);
   // [FIX 2026-11-18] 直接校验，取代"枚举候选再按 id 精确匹配"。
   // 旧实现只认 generateCandidates 钦定的那一张带牌，玩家换合法带牌即被误判非法。
   if (!engine.beats(detected, game.lastPlay)) return { ok: false, error: 'ILLEGAL_PLAY' };
@@ -817,14 +925,11 @@ function pass(game, seat) {
   if (game.status !== 'PLAYING') return { ok: false, error: 'GAME_NOT_PLAYING' };
   if (game.currentSeat !== seat) return { ok: false, error: 'NOT_YOUR_TURN' };
   if (!game.lastPlay) return { ok: false, error: 'CANNOT_PASS_WHEN_LEADING' };
-  var flags = forceFlagsOf(game);
+  var flags = activeFlagsOf(game, seat);
   if (!engine.canPass(game.lastPlay, flags, game.players[seat].hand, game.config)) return { ok: false, error: 'FORCED_TO_PLAY' };
-  if (flags.indexOf('NEED_BOMB') >= 0) {
-    var legalBombs = engine.getLegalPlays(game.players[seat].hand, null, game.config, []).filter(function (p) {
-      return engine.isBomb(p.detected);
-    });
-    if (legalBombs.length) game.bombVoid[seat] = (game.bombVoid[seat] || 0) + 1;
-  }
+  // [FIX 2026-11-19] 原有"留炸"计数（bombVoid）是死代码：只要手上真有炸弹，canPass 就会返回
+  // false 提前返回，这段永远执行不到；而且倍率制下没打出去的炸弹本来就不翻倍，
+  // "未用炸弹作废"已经由计分规则天然满足，不需要额外记账。这里删掉误导性的分支。
   game.passCount += 1;
   game.playLog.push({
     seq: game.playLog.length + 1, seat: seat, action: 'PASS', cards: [], ts: Date.now()

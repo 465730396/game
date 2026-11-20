@@ -7,9 +7,10 @@ var audio = require('../../utils/audio.js');
 Page({
   data: {
     largeFont: false,
-    // [FIX 2026-11-19] 2 人场暂时下线：52 张全牌下每人 26 张，牌宽 92rpx 时一屏只能放 7 张，
-    // 找一张牌要横滑 4 屏，实际不可玩。而压到 16~17 张就必须砍掉 2 或 A，
-    // "见A必出2""见2必出炸弹"两条规则会同时失效。引擎仍支持 2 人，等手牌叠压布局做完再放开。
+    // [FIX 2026-11-19] 2 人场暂时下线：同一副 48 张牌，2 人局每人 24 张，牌宽 92rpx 时一屏只能放 7 张，
+    // 找一张牌要横滑 4 屏，实际不可玩。要压到 17 张就得继续从牌堆里删牌，
+    // 而牌堆只剩 1 张 2、3 张 A，"见 A 必出 2""见 2 必出炸弹"两条规则的稀缺前提会被一起破坏。
+    // 引擎仍支持 2 人，等手牌两行布局做完再放开。
     counts: [3, 4],
     levels: [{ value: 'EASY', label: '简单' }, { value: 'NORMAL', label: '普通' }, { value: 'HARD', label: '困难' }],
     aiCount: 3,
@@ -44,7 +45,10 @@ Page({
     try { daily = wx.getStorageSync('sbm_daily') || null; } catch (e) {}
     var doneToday = !!(daily && daily.date === this.todayStr());
     var st2 = SBM.store.getStats();
-    var rate = st2.games ? Math.round((st2.wins / st2.games) * 100) : 0;
+    // [FIX 2026-11-19] 逃跑会 +1 总局数（保证"逃跑记一局"的口径），但它不该拉低胜率：
+    // 旧算法 wins/games 让"开局就退"也变成一负，胜率越玩越低。分母改成"真正打完的局数"。
+    var played = Math.max(0, (st2.games || 0) - (st2.escapes || 0));
+    var rate = played ? Math.round((st2.wins / played) * 100) : 0;
     var now = new Date();
     this.setData({
       largeFont: st.largeFont !== false,
@@ -52,7 +56,7 @@ Page({
       hasSession: alive,
       sessionDesc: alive ? this.buildSessionDesc(s) : '',
       statRate: rate,
-      statGames: st2.games || 0,
+      statGames: played,
       dayNum: now.getDate(),
       monthNum: now.getMonth() + 1,
       dailyDone: doneToday,
@@ -89,7 +93,8 @@ Page({
   },
 
   onStartAi: function () {
-    audio.init();
+    // 音频初始化失败不能挡住跳转（否则表现为"点了没反应"）
+    try { audio.init(); } catch (e) {}
     wx.navigateTo({
       url: '/pages/game/game?mode=AI&count=' + this.data.aiCount +
         '&level=' + this.data.aiLevel + '&rule=' + this.data.ruleMode
@@ -97,7 +102,7 @@ Page({
   },
 
   onStartHot: function () {
-    audio.init();
+    try { audio.init(); } catch (e) {}
     wx.navigateTo({
       url: '/pages/game/game?mode=HOTSEAT&count=' + this.data.hotCount +
         '&level=NORMAL&rule=' + this.data.ruleMode
@@ -108,7 +113,7 @@ Page({
 
   // [DESIGN 2026-11-19] 每日挑战：seed = 当天日期，所有人拿到同一副牌，单局定胜负。
   onDaily: function () {
-    audio.init();
+    try { audio.init(); } catch (e) {}
     wx.navigateTo({ url: '/pages/game/game?mode=AI&count=3&level=NORMAL&rule=CLASSIC&daily=1' });
   },
 
@@ -129,6 +134,6 @@ Page({
   },
 
   onShareAppMessage: function () {
-    return { title: '陕北捉老麻 · 夜宴牌局，来一局？', path: '/pages/index/index' };
+    return { title: '陕北捉老麻 · 霓虹牌局，来一局？', path: '/pages/index/index' };
   }
 });

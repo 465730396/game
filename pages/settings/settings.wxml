@@ -6,28 +6,28 @@
         <view class="setting-name">背景音乐</view>
         <view class="setting-desc">程序合成旋律，循环播放</view>
       </view>
-      <switch checked="{{bgm}}" color="#E8C57A" bindchange="onBgm" />
+      <switch checked="{{bgm}}" color="#2CF2FF" bindchange="onBgm" />
     </view>
     <view class="setting-row">
       <view class="setting-info">
         <view class="setting-name">语音提示</view>
         <view class="setting-desc">出牌、轮次、炸弹音效</view>
       </view>
-      <switch checked="{{dialect}}" color="#E8C57A" bindchange="onDialect" />
+      <switch checked="{{dialect}}" color="#2CF2FF" bindchange="onDialect" />
     </view>
     <view class="setting-row">
       <view class="setting-info">
         <view class="setting-name">大字模式</view>
         <view class="setting-desc">放大牌面与规则文字</view>
       </view>
-      <switch checked="{{largeFont}}" color="#E8C57A" bindchange="onFont" />
+      <switch checked="{{largeFont}}" color="#2CF2FF" bindchange="onFont" />
     </view>
     <view class="setting-row">
       <view class="setting-info">
         <view class="setting-name">振动反馈</view>
         <view class="setting-desc">出牌与炸弹时振动</view>
       </view>
-      <switch checked="{{vibration}}" color="#E8C57A" bindchange="onVibration" />
+      <switch checked="{{vibration}}" color="#2CF2FF" bindchange="onVibration" />
     </view>
   </view>
   <view class="panel">

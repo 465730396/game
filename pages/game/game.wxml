@@ -1,12 +1,37 @@
 <view class="page game-page {{largeFont?'large-font':''}} {{shake?'shake':''}}">
-  <!-- 背景特效 canvas -->
-  <canvas type="2d" id="fx" class="fx-canvas"></canvas>
+  <!-- [FIX 2026-11-19] 背景从原生 canvas 2d 改为纯 CSS 层。
+       原生 canvas 是各端最容易出问题的一环：它是原生组件、层级不受 z-index 完全控制，
+       一旦在某些基础库上盖住同层内容，表现就是"页面在、什么都没有"。整个夜空用渐变画，
+       观感几乎一致，但渲染路径是完全确定的。 -->
+  <view class="sky">
+    <view class="sky-glow g1"></view>
+    <view class="sky-glow g2"></view>
+    <view class="mote m1"></view>
+    <view class="mote m2"></view>
+    <view class="mote m3"></view>
+    <view class="mote m4"></view>
+  </view>
+
+  <!-- [FIX 2026-11-19] 炸弹高光横幅：炸弹落地时压一条在牌桌中央，1.4s 自动消失。
+       pointer-events: none，纯展示层，不拦任何点击；不做整屏遮罩，避免像结算页那样打断对局。 -->
+  <view wx:if="{{bombBanner}}" class="bomb-banner">
+    <view class="bomb-line"></view>
+    <view class="bomb-title">{{bombBannerTitle}}</view>
+    <view class="bomb-sub">{{bombBannerText}}</view>
+    <view class="bomb-line"></view>
+  </view>
 
   <view class="game-content">
     <view class="game-head">
       <view class="head-left">
-        <view class="head-meta">{{gameMeta}}</view>
+        <view class="head-meta"><text class="meta-tick"></text>{{gameMeta}}</view>
         <view class="head-round">{{roundText}}</view>
+      </view>
+      <!-- [FIX 2026-11-19] 实时倍率：炸弹落地即刻出现在牌桌上，倍率变化时闪一下。
+           旧版倍率只在结算页出现，玩家打炸时毫无反馈，机制等于不存在。 -->
+      <view wx:if="{{multiplier > 1}}" class="mult-chip {{multFlash?'mult-flash':''}}">
+        <text class="mult-x">×{{multiplier}}</text>
+        <text class="mult-t">炸弹翻倍</text>
       </view>
       <view class="head-actions">
         <view class="ghost-btn" bindtap="onRestart">重开</view>
@@ -14,7 +39,7 @@
       </view>
     </view>
 
-    <!-- 座位：头像徽章 + 剩牌角标，轮到谁用金环高亮 -->
+    <!-- 座位：轮到的座位亮青色光环，剩一张转洋红告警 -->
     <view class="seat-row">
       <view wx:for="{{seats}}" wx:key="seat" class="seat {{item.active?'active':''}} {{item.danger?'danger':''}}">
         <view class="seat-avatar">
@@ -31,15 +56,36 @@
       </view>
     </view>
 
-    <!-- 出牌区：做成毡面，桌上的牌是这一局的焦点 -->
+    <!-- [FIX 2026-11-19] 首局引导从全屏蒙版改成内嵌提示条。
+       旧实现是一层 rgba(2,4,9,.90) 的 fixed 遮罩，遮罩本身或卡片任何一端出问题，
+       整页都会变成一块黑板；提示条只是页面里的一段内容，最坏情况也只是多占几行。 -->
+    <view wx:if="{{guide}}" class="guide-bar">
+      <view class="guide-hd">先看三件事</view>
+      <view class="guide-item"><text class="guide-no">1</text><text class="guide-txt">首局由持红桃 3 的人先出，第一手必须带红桃 3；一轮之内第 2 局起改由上一局末位先出。</text></view>
+      <view class="guide-item"><text class="guide-no">2</text><text class="guide-txt">见 K 必出 A、见 A 必出 2、见 2 必出炸弹。</text></view>
+      <view class="guide-item"><text class="guide-no">3</text><text class="guide-txt">5 局为一轮，炸弹让全桌输赢翻倍，最多 ×4。</text></view>
+      <view class="guide-btn" bindtap="onGuideClose">知 道 了</view>
+    </view>
+
+    <!-- 出牌区：暗场 + 旋转光环，桌面本身在"运转" -->
     <view class="table {{playPulse?'pulse':''}}">
+      <view class="table-scan"></view>
+      <view class="table-frame">
+        <view class="tf tl"></view><view class="tf tr"></view>
+        <view class="tf bl"></view><view class="tf br"></view>
+      </view>
+      <view class="table-rings">
+        <view class="ring r1"></view>
+        <view class="ring r2"></view>
+        <view class="ring r3"></view>
+        <view class="table-core"></view>
+      </view>
       <view class="table-label">{{playLabel}}</view>
       <view wx:if="{{!lastCards.length}}" class="table-empty">自 由 出 牌</view>
       <view class="table-cards">
         <view wx:for="{{lastCards}}" wx:key="id" class="card played {{item.red?'red':'black'}}">
           <view class="card-rank">{{item.rank}}</view>
           <view class="card-suit">{{item.suitText}}</view>
-          <view class="card-mark">{{item.suitText}}</view>
         </view>
       </view>
     </view>
@@ -47,9 +93,13 @@
     <!-- 记牌器：各点数还有多少张没出现 -->
     <scroll-view wx:if="{{counter.length}}" scroll-x class="counter-scroll">
       <view class="counter-row">
-        <text class="counter-label">未出</text>
+        <!-- [FIX 2026-11-19] 文案由"未出"改为"未见"：这个数字等于"没出现过的牌"，
+             已经把我的手牌扣掉了，所以它其实是"别人手上还剩几张"。写"未出"会让人
+             以为自己手里的牌也算没出，读出来的数对不上。 -->
+        <text class="counter-label">未见</text>
         <view wx:for="{{counter}}" wx:key="rank" class="counter-chip">
           <text class="counter-rank">{{item.rank}}</text>
+          <text class="counter-sep">/</text>
           <text class="counter-left">{{item.left}}</text>
         </view>
       </view>
@@ -63,7 +113,7 @@
     <!-- 状态行 -->
     <view class="status-line">{{statusText}}</view>
 
-    <!-- 手牌：叠压成扇形，17 张也能一屏放下 -->
+    <!-- 手牌：叠压成扇形，16 张（3 人局满手）也能一屏放下 -->
     <view class="hand-zone">
       <view class="hand-head">
         <text class="hand-title">{{handTitle}}</text>
@@ -76,29 +126,17 @@
               data-id="{{item.id}}" bindtap="onCardTap">
           <view class="card-rank">{{item.rank}}</view>
           <view class="card-suit">{{item.suitText}}</view>
-          <view class="card-mark">{{item.suitText}}</view>
         </view>
       </view>
     </view>
 
-    <!-- 操作按钮：提示/不出为次键，出牌为主键 -->
+    <!-- 操作：提示/不出为灯管次键，出牌为酸性主键 -->
     <view class="action-row">
       <button class="btn btn-outline act act-hint" disabled="{{!canHint}}" bindtap="onHint">提示</button>
       <button class="btn btn-outline act {{passEmphasis?'emph':''}}" disabled="{{!canPass}}" bindtap="onPass">不出</button>
       <button class="btn act act-play" disabled="{{!canPlay}}" bindtap="onPlay">出 牌</button>
     </view>
     <view wx:if="{{passReason}}" class="pass-reason">{{passReason}}</view>
-  </view>
-
-  <!-- 首局引导 -->
-  <view wx:if="{{guide}}" class="mask">
-    <view class="mask-card guide-card">
-      <view class="mask-title">先看三件事</view>
-      <view class="guide-item"><text class="guide-no">1</text><text class="guide-txt">持红桃 3 的人先出，第一手必须带红桃 3。</text></view>
-      <view class="guide-item"><text class="guide-no">2</text><text class="guide-txt">见 K 必出 A、见 A 必出 2、见 2 必出炸弹；被拦住时底部会说明是哪条规则。</text></view>
-      <view class="guide-item"><text class="guide-no">3</text><text class="guide-txt">5 局为一轮，炸弹让全桌输赢翻倍，最多 ×4。</text></view>
-      <button class="btn btn-block" bindtap="onGuideClose">知 道 了</button>
-    </view>
   </view>
 
   <!-- 热座交接遮罩 -->

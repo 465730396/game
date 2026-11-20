@@ -1,7 +1,7 @@
 <view class="page {{largeFont?'large-font':''}}">
   <view class="panel">
     <view class="panel-title">基本信息</view>
-    <view class="rule-p">3 人局用 51 张牌（去掉大小王、1 张 2），每人 17 张；4 人局用 52 张全牌，每人 13 张。首局由持红桃 3 者先出、首手必须包含红桃 3；一轮之内，从第 2 局起由上一局的末位先出。</view>
+    <view class="rule-p">一副牌去掉大小王，再去掉 3 张 2、1 张 A，共 48 张：3 人局每人 16 张，4 人局每人 12 张。全场只有 1 张 2、3 张 A。首局由持红桃 3 者先出、首手必须包含红桃 3；一轮之内，从第 2 局起由上一局的末位先出。</view>
   </view>
   <view class="panel">
     <view class="panel-title">牌型</view>
@@ -14,11 +14,15 @@
   </view>
   <view class="panel">
     <view class="panel-title">强制规则</view>
-    <view class="rule-p">见单 K 必出 A · 见对 K 必出对 A · 见 A 必出 2 · 见 2 必出炸弹。无牌可压且规则允许时可不出；已落地的牌不可收回；剩 3 张以内自动报牌。</view>
+    <view class="rule-p">见单 K 必出 A · 见对 K 必出对 A · 见单 A 必出 2 · 见单 2 必出炸弹。这四条只在"你手上真有那张牌"时生效：手上没有 A/2/对 A 或炸弹，规则对你不作数，可以出炸弹压，也可以不出。剩 3 张以内自动报牌；已落地的牌不可收回。</view>
+  </view>
+  <view class="panel">
+    <view class="panel-title">天炸的特殊处理</view>
+    <view class="rule-p">三个 A 是天炸，压得过任何四张炸弹与普通牌。牌堆只留 3 张 A，所以天炸只有 AAA 这一种形态、并且全场最多出现一次。手上只有三个 A、没有四张炸弹时，"见 2 必出炸弹"不强制你炸——想炸可以炸，想留也可以不出。</view>
   </view>
   <view class="panel">
     <view class="panel-title">计分（娱乐积分）</view>
-    <view class="rule-p">胜者得其他玩家剩余张数之和，其余玩家各扣自己的剩余张数（有赢必有输，总分守恒）。本局每出现一个炸弹，全桌输赢 ×2；天炸算两个炸弹；最多 ×4。5 局为一轮累计。逃跑只记次数不计分。积分仅作娱乐记录，不兑换任何物品。</view>
+    <view class="rule-p">胜者得其他玩家剩余张数之和，其余玩家各扣自己的剩余张数（有赢必有输，总分守恒）。本局每出现一个炸弹，全桌输赢 ×2；天炸算两个炸弹；最多 ×4。倍率在牌桌顶部实时显示，炸弹落地时会压一条提示；一轮结束后，逐局得分里炸过的那局会单独标出 ×N。5 局为一轮累计。逃跑只记次数不计分。积分仅作娱乐记录，不兑换任何物品。</view>
   </view>
   <view class="panel">
     <view class="panel-title">两种规则档</view>

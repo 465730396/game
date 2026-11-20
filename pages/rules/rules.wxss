@@ -1,8 +1,13 @@
-.rule-p { font-size: 26rpx; line-height: 1.8; color: var(--ink); }
-.rule-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
+.rule-p { font-size: 26rpx; line-height: 1.85; color: var(--ink); }
+/* 牌型卡片：左侧一道青色亮边，比四边同色更像"条目"而不是"色块" */
+.rule-grid { display: flex; flex-wrap: wrap; gap: 14rpx; }
 .rule-item {
-  width: calc(50% - 8rpx); box-sizing: border-box;
-  background: rgba(232,197,122,0.06); border-radius: 12rpx; padding: 18rpx;
+  width: calc(50% - 7rpx); box-sizing: border-box;
+  padding: 18rpx;
+  background: rgba(44, 242, 255, 0.05);
+  border: 1rpx solid rgba(44, 242, 255, 0.10);
+  border-left: 2rpx solid rgba(44, 242, 255, 0.55);
+  border-radius: 2rpx;
 }
-.rule-name { font-size: 26rpx; font-weight: 500; color: var(--gold); margin-bottom: 8rpx; }
-.rule-desc { font-size: 22rpx; color: var(--gold-dim); line-height: 1.5; }
+.rule-name { font-size: 26rpx; font-weight: 700; color: var(--cyan); margin-bottom: 8rpx; letter-spacing: 1rpx; }
+.rule-desc { font-size: 22rpx; color: var(--ink-2); line-height: 1.55; }

@@ -1,18 +1,21 @@
-.rule-p { font-size: 26rpx; line-height: 1.8; color: var(--ink); margin-bottom: 12rpx; }
+.rule-p { font-size: 26rpx; line-height: 1.85; color: var(--ink); margin-bottom: 12rpx; }
 .rule-p:last-child { margin-bottom: 0; }
-.foot-note { text-align: center; font-size: 22rpx; color: var(--gold-dim); padding: 8rpx 0 24rpx; }
+.foot-note { text-align: center; font-size: 20rpx; color: var(--ink-3); padding: 8rpx 0 24rpx; letter-spacing: 1rpx; }
 
 /* 设置行样式与设置页保持一致（面板内的行 + 迷你按钮） */
 .setting-row {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 18rpx 0; border-top: 1rpx solid rgba(232, 197, 122, 0.12);
+  padding: 18rpx 0; border-top: 1rpx solid rgba(44, 242, 255, 0.09);
 }
 .setting-row:first-of-type { border-top: none; }
 .setting-info { flex: 1; padding-right: 20rpx; }
 .setting-name { font-size: 28rpx; color: var(--ink); }
-.setting-desc { font-size: 22rpx; color: var(--gold-dim); margin-top: 6rpx; }
+.setting-desc { font-size: 21rpx; color: var(--ink-3); margin-top: 6rpx; }
 .icon-btn {
-  background: transparent; border: 1rpx solid var(--gold-dim); color: var(--gold);
-  border-radius: 10rpx; font-size: 24rpx; padding: 0 20rpx; line-height: 2.1;
+  background: rgba(44, 242, 255, 0.08);
+  border: 1rpx solid rgba(44, 242, 255, 0.45);
+  color: var(--cyan);
+  border-radius: 2rpx;
+  font-size: 23rpx; padding: 0 20rpx; line-height: 2.1;
 }
 .icon-btn::after { border: none; }

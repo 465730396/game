@@ -9,7 +9,7 @@ Page({
     title: '', ruleSetId: '', time: '', scores: [], hotseat: false,
     largeFont: false,
     roundIndex: 0, roundSize: 0, roundDone: false, roundLabel: '', againLabel: '再来一局',
-    totals: [], history: [], multiplier: 1, multiText: '', dailyTip: ''
+    totals: [], history: [], multiplier: 1, multiText: '', dailyTip: '', roundPeakText: ''
   },
 
   onLoad: function () {
@@ -36,6 +36,13 @@ Page({
     if (r.daily) againLabel = '再练一次';
     var dailyTip = r.daily ? '每日挑战成绩以首次完成为准，重玩不计入今日成绩' : '';
 
+    // [FIX 2026-11-19] 逐局历史带上倍率：稀有事件在一轮结束时要留痕，
+    // 否则打完 5 局只看到一个总分，玩家根本不知道中间有过一局 ×4。
+    var hist = (rd && rd.history ? rd.history : []).map(function (h) {
+      return { no: h.no, delta: h.delta, multiplier: h.multiplier || 1 };
+    });
+    var roundPeak = hist.reduce(function (m, h) { return Math.max(m, h.multiplier); }, 1);
+
     this.setData({
       noData: false,
       won: !!r.won,
@@ -52,7 +59,8 @@ Page({
       roundLabel: roundLabel,
       againLabel: againLabel,
       totals: rd && rd.totals ? rd.totals.slice().sort(function (a, b) { return b.total - a.total; }) : [],
-      history: rd && rd.history ? rd.history.slice() : [],
+      history: hist,
+      roundPeakText: (rd && rd.done && roundPeak > 1) ? ('本轮最高倍率 ×' + roundPeak) : '',
       multiplier: r.multiplier || 1,
       multiText: (r.multiplier && r.multiplier > 1) ? ('本局炸弹翻倍 ×' + r.multiplier) : '',
       dailyTip: dailyTip
@@ -110,59 +118,94 @@ Page({
   },
 
   paintPoster: function (ctx, W, H, r) {
-    var GOLD = '#E8C57A', DIM = '#9A8360', INK = '#F3E6CE', RED = '#C0392B', GREEN = '#6FB98A';
-    ctx.fillStyle = '#1B1018'; ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = '#241419'; ctx.fillRect(40, 40, W - 80, H - 80);
-    ctx.strokeStyle = 'rgba(232,197,122,0.35)'; ctx.lineWidth = 2; ctx.strokeRect(40, 40, W - 80, H - 80);
+    // [DESIGN 2026-11-19] 战绩图跟着视觉体系一起换：近黑底 + 顶部洋红辉光 + 青色网格 + 发光判定。
+    // 这张图是要被发到聊天窗里的，它比页面本身更代表"这游戏长什么样"。
+    var CYAN = '#2CF2FF', MAGENTA = '#FF2D7A', ACID = '#C9FF24';
+    var INK = '#E9F5FF', DIM = '#7E96AD', JADE = '#35E6A8';
+
+    ctx.fillStyle = '#04060C'; ctx.fillRect(0, 0, W, H);
+
+    var top = ctx.createRadialGradient(W / 2, -80, 0, W / 2, -80, H * 0.78);
+    top.addColorStop(0, 'rgba(255,45,122,0.40)');
+    top.addColorStop(0.44, 'rgba(255,45,122,0.09)');
+    top.addColorStop(1, 'rgba(255,45,122,0)');
+    ctx.fillStyle = top; ctx.fillRect(0, 0, W, H);
+
+    var bot = ctx.createRadialGradient(W / 2, H * 0.96, 0, W / 2, H * 0.96, W * 0.86);
+    bot.addColorStop(0, 'rgba(44,242,255,0.20)');
+    bot.addColorStop(0.5, 'rgba(44,242,255,0.04)');
+    bot.addColorStop(1, 'rgba(44,242,255,0)');
+    ctx.fillStyle = bot; ctx.fillRect(0, H * 0.44, W, H * 0.56);
+
+    // 细网格：给海报一层"屏幕"质感
+    ctx.strokeStyle = 'rgba(44,242,255,0.06)'; ctx.lineWidth = 1;
+    for (var gx = 0; gx <= W; gx += 50) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
+    for (var gy = 0; gy <= H; gy += 50) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
+
+    ctx.strokeStyle = 'rgba(44,242,255,0.32)'; ctx.lineWidth = 2; ctx.strokeRect(40, 40, W - 80, H - 80);
+    // 对角双色角标
+    ctx.strokeStyle = 'rgba(255,45,122,0.80)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(40, 190); ctx.lineTo(40, 40); ctx.lineTo(190, 40); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W - 40, H - 190); ctx.lineTo(W - 40, H - 40); ctx.lineTo(W - 190, H - 40); ctx.stroke();
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = GOLD; ctx.font = 'bold 40px sans-serif';
-    ctx.fillText('陕北捉老麻', W / 2, 130);
-    ctx.fillStyle = DIM; ctx.font = '22px sans-serif';
-    ctx.fillText('夜宴牌局 · 娱乐积分', W / 2, 172);
+    ctx.shadowColor = 'rgba(44,242,255,0.65)'; ctx.shadowBlur = 18;
+    ctx.fillStyle = CYAN; ctx.font = 'bold 38px sans-serif';
+    ctx.fillText('陕北捉老麻', W / 2, 138);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = DIM; ctx.font = '20px sans-serif';
+    ctx.fillText('N E O N   S H A D O W   ·   娱乐积分', W / 2, 178);
 
-    ctx.fillStyle = r.hotseat ? DIM : (r.won ? GOLD : RED);
-    ctx.font = 'bold 96px sans-serif';
-    ctx.fillText(r.hotseat ? '赢家' : (r.won ? '胜' : '负'), W / 2, 320);
+    var win = !r.hotseat && r.won;
+    var lose = !r.hotseat && !r.won;
+    var ring = win ? CYAN : (lose ? MAGENTA : DIM);
+    ctx.strokeStyle = ring; ctx.globalAlpha = 0.34; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(W / 2, 320, 114, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 1;
 
-    ctx.fillStyle = INK; ctx.font = '30px sans-serif';
+    ctx.shadowColor = ring; ctx.shadowBlur = 34;
+    ctx.fillStyle = r.hotseat ? INK : (win ? ACID : MAGENTA);
+    ctx.font = 'bold 92px sans-serif';
+    ctx.fillText(r.hotseat ? '赢家' : (win ? '胜' : '负'), W / 2, 354);
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = INK; ctx.font = 'bold 30px sans-serif';
     var line = r.hotseat ? (r.winnerName + ' 赢下这一局')
-      : (r.won ? '你赢下这一局' : (r.winnerName + ' 赢下这一局'));
-    ctx.fillText(line, W / 2, 385);
+      : (win ? '你赢下这一局' : (r.winnerName + ' 赢下这一局'));
+    ctx.fillText(line, W / 2, 428);
 
     var rd = r.round || {};
-    ctx.fillStyle = DIM; ctx.font = '24px sans-serif';
-    var sub = (rd.index ? ('第 ' + rd.index + ' / ' + rd.size + ' 局') : '') + (r.time ? (' · ' + r.time) : '');
-    ctx.fillText(sub, W / 2, 428);
+    ctx.fillStyle = DIM; ctx.font = '22px sans-serif';
+    ctx.fillText((rd.index ? ('第 ' + rd.index + ' / ' + rd.size + ' 局') : '') + (r.time ? ('  ·  ' + r.time) : ''), W / 2, 470);
 
     if (r.multiplier && r.multiplier > 1) {
-      ctx.fillStyle = RED; ctx.font = '24px sans-serif';
-      ctx.fillText('炸弹翻倍 ×' + r.multiplier, W / 2, 468);
+      ctx.fillStyle = MAGENTA; ctx.font = 'bold 24px sans-serif';
+      ctx.fillText('炸弹翻倍 ×' + r.multiplier, W / 2, 512);
     }
 
-    ctx.strokeStyle = 'rgba(232,197,122,0.25)';
-    ctx.beginPath(); ctx.moveTo(120, 505); ctx.lineTo(W - 120, 505); ctx.stroke();
+    ctx.strokeStyle = 'rgba(44,242,255,0.20)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(120, 546); ctx.lineTo(W - 120, 546); ctx.stroke();
 
     var rows = (r.scores || []).slice(0, 4);
     rows.forEach(function (row, i) {
-      var y = 570 + i * 74;
+      var y = 606 + i * 74;
       ctx.textAlign = 'left';
-      ctx.fillStyle = i === 0 ? GOLD : DIM;
-      ctx.font = 'bold 28px sans-serif';
+      ctx.fillStyle = i === 0 ? CYAN : DIM;
+      ctx.font = 'bold 30px sans-serif';
       ctx.fillText(String(row.rank), 150, y);
       ctx.fillStyle = INK; ctx.font = '30px sans-serif';
-      ctx.fillText(row.name, 200, y);
+      ctx.fillText(row.name, 204, y);
       ctx.textAlign = 'right';
-      ctx.fillStyle = row.delta > 0 ? '#E05A4E' : GREEN;
-      ctx.font = 'bold 32px sans-serif';
+      ctx.fillStyle = row.delta > 0 ? MAGENTA : JADE;
+      ctx.font = 'bold 34px sans-serif';
       ctx.fillText((row.delta > 0 ? '+' : '') + row.delta, W - 150, y);
       ctx.textAlign = 'center';
     });
 
     ctx.fillStyle = DIM; ctx.font = '22px sans-serif';
-    ctx.fillText('微信搜索「陕北捉老麻」一起来一局', W / 2, H - 90);
-    ctx.fillStyle = 'rgba(154,131,96,0.75)'; ctx.font = '18px sans-serif';
-    ctx.fillText('娱乐积分，不兑换任何物品', W / 2, H - 58);
+    ctx.fillText('微信搜索「陕北捉老麻」一起来一局', W / 2, H - 92);
+    ctx.fillStyle = 'rgba(126,150,173,0.7)'; ctx.font = '18px sans-serif';
+    ctx.fillText('娱乐积分，不兑换任何物品', W / 2, H - 60);
   },
 
   onSavePoster: function () {

@@ -1,156 +1,377 @@
-.index-page { padding-top: 44rpx; }
+.index-page { padding-top: 26rpx; }
 
-/* ---------- 品牌区 ---------- */
-.brand { display: flex; align-items: center; margin-bottom: 30rpx; padding: 0 6rpx; }
-.brand-seal {
-  width: 92rpx; height: 92rpx; flex: 0 0 auto;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 14rpx;
-  background-image: linear-gradient(160deg, #C0332A 0%, #8E1F1B 100%);
-  border: 2rpx solid rgba(235, 203, 132, 0.75);
-  box-shadow: 0 8rpx 20rpx rgba(140, 30, 26, 0.5), inset 0 0 16rpx rgba(0, 0, 0, 0.35);
-  transform: rotate(-5deg);
+/* ================= HERO ================= */
+.hero {
+  position: relative;
+  padding: 34rpx 28rpx 30rpx;
+  margin-bottom: 24rpx;
+  overflow: hidden;
+  border-radius: 6rpx;
+  background-image:
+    radial-gradient(120% 90% at 88% 0%, rgba(255, 45, 122, 0.26) 0%, rgba(255, 45, 122, 0) 58%),
+    radial-gradient(100% 80% at 0% 100%, rgba(44, 242, 255, 0.18) 0%, rgba(44, 242, 255, 0) 62%),
+    linear-gradient(160deg, rgba(18, 30, 50, 0.95) 0%, rgba(6, 10, 20, 0.97) 100%);
+  border: 1rpx solid rgba(44, 242, 255, 0.22);
+  box-shadow:
+    0 24rpx 60rpx rgba(0, 0, 0, 0.62),
+    inset 0 1rpx 0 rgba(44, 242, 255, 0.30),
+    inset 0 0 70rpx rgba(44, 242, 255, 0.06);
 }
-.seal-txt {
-  font-size: 50rpx; color: #FFEFD8; font-weight: 700;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
+/* 右上角一团洋红辉光 + 左下青光：靠光而不是靠大字水印做纵深，
+   暗底上的大号低透明度文字会糊成灰块，看起来像渲染错误。 */
+.hero::after {
+  content: '';
+  position: absolute;
+  right: -140rpx; top: -140rpx;
+  width: 460rpx; height: 460rpx;
+  border-radius: 50%;
+  background-image: radial-gradient(circle, rgba(255, 45, 122, 0.22) 0%, rgba(255, 45, 122, 0) 64%);
+  pointer-events: none;
 }
-.brand-main { flex: 1; min-width: 0; padding-left: 22rpx; }
-.brand-title {
-  font-size: 50rpx; font-weight: 700; color: var(--gold); letter-spacing: 4rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
-  text-shadow: 0 2rpx 10rpx rgba(235, 203, 132, 0.28);
+/* 缓慢下扫的扫描带：整块 HERO 像一块通电的屏 */
+.hero-scan {
+  position: absolute;
+  left: 0; right: 0;
+  height: 150rpx;
+  z-index: 1;
+  pointer-events: none;
+  background-image: linear-gradient(180deg, rgba(44, 242, 255, 0) 0%, rgba(44, 242, 255, 0.10) 50%, rgba(44, 242, 255, 0) 100%);
+  animation: heroScan 7s linear infinite;
 }
-.brand-sub { font-size: 20rpx; color: var(--gold-dim); letter-spacing: 3rpx; margin-top: 6rpx; }
-.brand-stat { flex: 0 0 auto; text-align: right; padding-left: 16rpx; }
-.stat-num {
-  font-size: 38rpx; font-weight: 800; color: var(--ink); line-height: 1;
+@keyframes heroScan {
+  0% { top: -160rpx; }
+  100% { top: 420rpx; }
+}
+
+.hero-top {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.hero-kicker {
+  display: flex;
+  align-items: center;
+  font-size: 18rpx;
+  letter-spacing: 3rpx;
+  color: var(--ink-2);
+  padding-top: 10rpx;
+}
+.k-dot {
+  width: 10rpx; height: 10rpx;
+  margin-right: 12rpx;
+  border-radius: 50%;
+  background: var(--acid);
+  box-shadow: 0 0 12rpx rgba(201, 255, 36, 0.9);
+  animation: dotBlink 2.4s ease-in-out infinite;
+}
+@keyframes dotBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.25; }
+}
+
+.hero-hud { text-align: right; }
+.hud-row { display: flex; align-items: baseline; justify-content: flex-end; }
+.hud-num {
+  font-size: 56rpx;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -2rpx;
+  color: var(--cyan);
   font-family: "DIN Alternate", "Helvetica Neue", sans-serif;
+  text-shadow: 0 0 24rpx rgba(44, 242, 255, 0.65);
 }
-.stat-pct { font-size: 20rpx; color: var(--gold-dim); margin-left: 2rpx; font-weight: 500; }
-.stat-cap { font-size: 19rpx; color: var(--gold-dim); margin-top: 6rpx; letter-spacing: 2rpx; }
+.hud-unit {
+  font-size: 22rpx;
+  color: var(--cyan);
+  margin-left: 2rpx;
+  opacity: 0.7;
+}
+.hud-cap {
+  font-size: 18rpx;
+  color: var(--ink-2);
+  letter-spacing: 2rpx;
+  margin-top: 6rpx;
+}
 
-/* ---------- 续局条带 ---------- */
+.hero-title { position: relative; z-index: 2; margin-top: 18rpx; }
+.hero-pre {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--ink-2);
+  letter-spacing: 20rpx;
+  line-height: 1;
+}
+/* 主标题：900 字重 + 双色辉光，伪元素在固定帧错位，形成故障感 */
+.glitch {
+  position: relative;
+  display: block;
+  margin-top: 10rpx;
+  font-size: 104rpx;
+  font-weight: 900;
+  line-height: 1.06;
+  letter-spacing: 4rpx;
+  color: #F6FDFF;
+  text-shadow:
+    0 0 34rpx rgba(44, 242, 255, 0.60),
+    0 0 90rpx rgba(255, 45, 122, 0.32);
+}
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%;
+  opacity: 0;
+  pointer-events: none;
+}
+.glitch::before { color: var(--magenta); animation: glitchA 6s steps(1) infinite; }
+.glitch::after { color: var(--cyan); animation: glitchB 6s steps(1) infinite; }
+@keyframes glitchA {
+  0%, 88%, 100% { opacity: 0; transform: translate(0, 0); }
+  89% { opacity: 0.85; transform: translate(-6rpx, 4rpx); }
+  92% { opacity: 0.65; transform: translate(5rpx, -3rpx); }
+  95% { opacity: 0; }
+}
+@keyframes glitchB {
+  0%, 88%, 100% { opacity: 0; transform: translate(0, 0); }
+  89% { opacity: 0.7; transform: translate(6rpx, -3rpx); }
+  92% { opacity: 0.55; transform: translate(-4rpx, 3rpx); }
+  95% { opacity: 0; }
+}
+.hero-en {
+  margin-top: 10rpx;
+  font-size: 18rpx;
+  letter-spacing: 12rpx;
+  color: var(--ink-3);
+}
+
+.hero-tags {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: 10rpx;
+  margin-top: 24rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid rgba(44, 242, 255, 0.12);
+}
+.hero-tag {
+  font-size: 19rpx;
+  color: var(--ink-2);
+  letter-spacing: 1rpx;
+  padding: 6rpx 14rpx;
+  border: 1rpx solid rgba(44, 242, 255, 0.20);
+  border-radius: 2rpx;
+  background: rgba(44, 242, 255, 0.05);
+}
+
+/* ================= 续局 ================= */
 .resume {
   position: relative;
   z-index: 2;
-  display: flex; align-items: center; gap: 16rpx;
-  margin: 26rpx 0 22rpx;
-  padding: 24rpx 22rpx;
-  border-radius: 22rpx;
-  background-image: linear-gradient(100deg, #5E1B18 0%, #401518 55%, #2A1012 100%);
-  border: 1rpx solid rgba(235, 203, 132, 0.38);
-  box-shadow: 0 16rpx 32rpx rgba(0, 0, 0, 0.46), inset 0 0 30rpx rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  margin-bottom: 22rpx;
+  padding: 22rpx 22rpx 22rpx 26rpx;
+  border-radius: 4rpx;
+  overflow: hidden;
+  background-image: linear-gradient(100deg, rgba(255, 45, 122, 0.20) 0%, rgba(18, 30, 50, 0.92) 58%, rgba(6, 10, 20, 0.95) 100%);
+  border: 1rpx solid rgba(255, 45, 122, 0.40);
+  box-shadow: 0 16rpx 36rpx rgba(0, 0, 0, 0.5), inset 0 0 40rpx rgba(255, 45, 122, 0.08);
 }
-/* 标签做成卡内竖排小印：用 column 排列而非 writing-mode，
-   后者在部分 Android WebView 上不生效，会把三个字挤成横向溢出 */
-.resume-tag {
-  flex: 0 0 auto;
-  display: flex; flex-direction: column; align-items: center;
-  padding: 8rpx 6rpx;
-  border-radius: 8rpx;
-  background-image: linear-gradient(180deg, #DE5A4C, #A93228);
-  box-shadow: 0 4rpx 10rpx rgba(0, 0, 0, 0.42);
-}
-.resume-tag text {
-  font-size: 19rpx; line-height: 1.35; color: #FFF3E4; letter-spacing: 0;
+/* 左侧竖直洋红光条：比"未完成"三个小字更快被看到 */
+.resume-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4rpx;
+  background: var(--magenta);
+  box-shadow: 0 0 16rpx rgba(255, 45, 122, 0.95);
 }
 .resume-body { flex: 1; min-width: 0; }
+.resume-kicker {
+  display: flex;
+  align-items: center;
+  font-size: 17rpx;
+  letter-spacing: 2rpx;
+  color: var(--magenta);
+}
+.live-dot {
+  width: 8rpx; height: 8rpx;
+  margin-right: 10rpx;
+  border-radius: 50%;
+  background: var(--magenta);
+  box-shadow: 0 0 10rpx rgba(255, 45, 122, 0.9);
+  animation: dotBlink 1.6s ease-in-out infinite;
+}
 .resume-title {
-  font-size: 30rpx; color: var(--gold); font-weight: 600; letter-spacing: 1rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: 2rpx;
+  margin-top: 6rpx;
 }
 .resume-desc {
-  font-size: 19rpx; color: var(--ink-dim); margin-top: 6rpx; line-height: 1.45;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-size: 19rpx;
+  color: var(--ink-2);
+  margin-top: 6rpx;
+  line-height: 1.45;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
-.resume-drop { flex: 0 0 auto; font-size: 23rpx; color: var(--ink-dim); padding: 12rpx 10rpx; }
+.resume-actions { flex: 0 0 auto; display: flex; flex-direction: row-reverse; align-items: center; gap: 12rpx; }
 .resume-go {
-  flex: 0 0 auto; width: 134rpx; height: 68rpx; line-height: 68rpx;
-  padding: 0; border-radius: 12rpx; border: none;
-  background-image: linear-gradient(180deg, #F3D792, #C79A4E);
-  color: #3A1B12; font-size: 27rpx; font-weight: 700; letter-spacing: 2rpx;
-  box-shadow: 0 5rpx 0 #6E4A1E, inset 0 1rpx 0 rgba(255, 255, 255, 0.55);
+  width: 132rpx; height: 66rpx; line-height: 66rpx;
+  text-align: center;
+  font-size: 26rpx; font-weight: 800; letter-spacing: 3rpx;
+  color: #1A0310;
+  background-image: linear-gradient(110deg, #D9FF45, #2CF2FF);
+  box-shadow: 0 0 24rpx rgba(44, 242, 255, 0.35);
 }
-.resume-go::after { border: none; }
+.resume-drop { font-size: 20rpx; color: var(--ink-3); padding: 2rpx 4rpx; }
 
-/* ---------- 主卡：开局 ---------- */
-.board-head { display: flex; align-items: baseline; justify-content: space-between; }
+/* ================= 开局面板 ================= */
+.board-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6rpx;
+}
 .board-title {
-  font-size: 34rpx; font-weight: 700; color: var(--ink); letter-spacing: 2rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 36rpx;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: 3rpx;
 }
-.board-sub { font-size: 20rpx; color: var(--gold-dim); letter-spacing: 1rpx; }
+.board-sub { font-size: 18rpx; color: var(--ink-3); letter-spacing: 2rpx; }
 
-.opt { display: flex; align-items: center; gap: 18rpx; margin-top: 18rpx; }
-.opt-label { width: 62rpx; flex: 0 0 auto; font-size: 24rpx; color: var(--ink-dim); letter-spacing: 1rpx; }
+.opt { display: flex; align-items: center; gap: 16rpx; margin-top: 18rpx; }
+.opt-label {
+  width: 78rpx; flex: 0 0 auto;
+  white-space: nowrap;
+  font-size: 21rpx; color: var(--ink-2); letter-spacing: 2rpx;
+  padding-left: 12rpx;
+  border-left: 2rpx solid rgba(44, 242, 255, 0.35);
+  line-height: 1.1;
+}
 .opt .pill-group { flex: 1; }
 .opt-hint {
-  font-size: 20rpx; color: var(--gold-dim); line-height: 1.6;
-  margin-top: 18rpx; padding-left: 80rpx;
+  font-size: 19rpx;
+  color: var(--ink-3);
+  line-height: 1.62;
+  margin-top: 18rpx;
+  padding-left: 94rpx;
 }
-.btn-start { margin-top: 26rpx; height: 96rpx; font-size: 33rpx; letter-spacing: 6rpx; }
+.btn-start { margin-top: 28rpx; height: 104rpx; font-size: 34rpx; letter-spacing: 8rpx; }
 
-/* ---------- 每日挑战 ---------- */
+/* ================= 每日挑战 ================= */
 .daily {
-  display: flex; align-items: center; gap: 20rpx;
-  margin-bottom: 22rpx; padding: 24rpx;
-  border-radius: 24rpx;
-  background-image: linear-gradient(135deg, rgba(235, 203, 132, 0.16) 0%, rgba(169, 50, 40, 0.22) 52%, rgba(36, 19, 22, 0.92) 100%);
-  border: 1rpx solid rgba(235, 203, 132, 0.32);
-  box-shadow: 0 16rpx 34rpx rgba(0, 0, 0, 0.4), inset 0 1rpx 0 rgba(255, 226, 170, 0.14);
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 22rpx;
+  padding: 24rpx;
+  border-radius: 4rpx;
+  overflow: hidden;
+  background-image:
+    linear-gradient(118deg, rgba(201, 255, 36, 0.14) 0%, rgba(255, 45, 122, 0.14) 46%, rgba(6, 10, 20, 0.95) 100%);
+  border: 1rpx solid rgba(201, 255, 36, 0.34);
+  box-shadow: 0 16rpx 36rpx rgba(0, 0, 0, 0.48), inset 0 0 40rpx rgba(201, 255, 36, 0.05);
+}
+/* 右侧斜纹：像票券的防伪条 */
+.daily::after {
+  content: '';
+  position: absolute;
+  right: -30rpx; top: -40rpx;
+  width: 120rpx; height: 200rpx;
+  background-image: repeating-linear-gradient(115deg, rgba(201, 255, 36, 0.22) 0, rgba(201, 255, 36, 0.22) 1px, transparent 1px, transparent 6px);
+  transform: rotate(8deg);
+  pointer-events: none;
 }
 .daily-date {
-  flex: 0 0 auto; width: 92rpx; padding: 10rpx 0; text-align: center;
-  border-radius: 14rpx;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1rpx solid rgba(235, 203, 132, 0.24);
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  width: 96rpx;
+  padding: 8rpx 0 10rpx;
+  text-align: center;
+  border: 1rpx solid rgba(201, 255, 36, 0.40);
+  background: rgba(0, 0, 0, 0.38);
 }
 .daily-d {
-  font-size: 42rpx; font-weight: 800; color: var(--gold); line-height: 1;
+  font-size: 52rpx;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--acid);
   font-family: "DIN Alternate", "Helvetica Neue", sans-serif;
+  text-shadow: 0 0 20rpx rgba(201, 255, 36, 0.65);
 }
-.daily-m { font-size: 18rpx; color: var(--gold-dim); margin-top: 6rpx; letter-spacing: 1rpx; }
-.daily-body { flex: 1; min-width: 0; }
-.daily-title { display: flex; align-items: center; font-size: 29rpx; color: var(--ink); font-weight: 600; letter-spacing: 1rpx; }
+.daily-m { font-size: 17rpx; color: var(--ink-2); margin-top: 6rpx; letter-spacing: 2rpx; }
+.daily-body { position: relative; z-index: 1; flex: 1; min-width: 0; }
+.daily-title {
+  display: flex; align-items: center;
+  font-size: 29rpx; font-weight: 800; color: var(--ink); letter-spacing: 2rpx;
+}
 .daily-done {
-  margin-left: 12rpx; padding: 2rpx 8rpx; border-radius: 6rpx;
-  font-size: 18rpx; font-weight: 400; color: #DFF3E6;
-  background: rgba(111, 185, 138, 0.26); border: 1rpx solid rgba(111, 185, 138, 0.55);
+  margin-left: 12rpx;
+  padding: 2rpx 8rpx;
+  font-size: 17rpx; font-weight: 500; letter-spacing: 0;
+  color: var(--jade);
+  border: 1rpx solid rgba(53, 230, 168, 0.55);
+  background: rgba(53, 230, 168, 0.12);
 }
-.daily-desc { font-size: 21rpx; color: var(--ink-dim); margin-top: 8rpx; line-height: 1.45; }
+.daily-desc { font-size: 20rpx; color: var(--ink-2); margin-top: 8rpx; line-height: 1.45; }
 .daily-cta {
-  flex: 0 0 auto; padding: 16rpx 26rpx; border-radius: 12rpx;
-  font-size: 24rpx; font-weight: 700; color: #3A1B12; letter-spacing: 2rpx;
-  background-image: linear-gradient(180deg, #F3D792, #C79A4E);
-  box-shadow: 0 5rpx 0 #6E4A1E, inset 0 1rpx 0 rgba(255, 255, 255, 0.55);
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto;
+  padding: 14rpx 24rpx;
+  font-size: 23rpx;
+  font-weight: 800;
+  letter-spacing: 3rpx;
+  color: #04121A;
+  background-image: linear-gradient(110deg, #D9FF45, #8CFF9E);
+  box-shadow: 0 0 22rpx rgba(201, 255, 36, 0.30);
 }
 
-/* ---------- 同屏热座 ---------- */
+/* ================= 热座 ================= */
 .hotseat { padding: 26rpx 28rpx; }
 .hotseat-head { display: flex; align-items: baseline; gap: 14rpx; margin-bottom: 18rpx; }
 .hotseat-title {
-  font-size: 29rpx; color: var(--gold); font-weight: 600; letter-spacing: 2rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 28rpx; font-weight: 800; color: var(--cyan); letter-spacing: 3rpx;
+  text-shadow: 0 0 16rpx rgba(44, 242, 255, 0.4);
 }
-.hotseat-desc { font-size: 20rpx; color: var(--gold-dim); }
-.hotseat-row { display: flex; align-items: center; gap: 16rpx; }
+.hotseat-desc { font-size: 19rpx; color: var(--ink-3); }
+.hotseat-row { display: flex; align-items: center; gap: 14rpx; }
 .hotseat-pills { flex: 1; }
-.hotseat-btn { flex: 0 0 auto; width: 168rpx; height: 78rpx; font-size: 27rpx; letter-spacing: 4rpx; }
+.hotseat-btn { flex: 0 0 auto; width: 166rpx; height: 80rpx; font-size: 27rpx; letter-spacing: 4rpx; }
 
-/* ---------- 底部导航 ---------- */
-.nav-grid { display: flex; gap: 16rpx; margin-top: 6rpx; }
+/* ================= 导航 ================= */
+.nav-grid { display: flex; gap: 14rpx; margin-top: 8rpx; }
 .nav-item {
-  flex: 1; text-align: center; padding: 22rpx 0;
-  border-radius: 20rpx;
-  background: rgba(0, 0, 0, 0.24);
-  border: 1rpx solid rgba(235, 203, 132, 0.14);
+  flex: 1;
+  text-align: center;
+  padding: 22rpx 0 20rpx;
+  border-radius: 4rpx;
+  background-image: linear-gradient(180deg, rgba(18, 30, 50, 0.72), rgba(6, 10, 20, 0.82));
+  border: 1rpx solid rgba(44, 242, 255, 0.14);
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.nav-item:active {
+  border-color: rgba(44, 242, 255, 0.55);
+  background-image: linear-gradient(180deg, rgba(44, 242, 255, 0.16), rgba(6, 10, 20, 0.82));
 }
 .nav-glyph {
-  width: 58rpx; height: 58rpx; line-height: 58rpx; margin: 0 auto 10rpx;
-  border-radius: 50%;
-  border: 1rpx solid rgba(235, 203, 132, 0.45);
-  color: var(--gold); font-size: 28rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
+  width: 56rpx; height: 56rpx; line-height: 56rpx;
+  margin: 0 auto 10rpx;
+  font-size: 27rpx;
+  font-weight: 700;
+  color: var(--cyan);
+  border: 1rpx solid rgba(44, 242, 255, 0.45);
+  box-shadow: inset 0 0 18rpx rgba(44, 242, 255, 0.16);
+  text-shadow: 0 0 14rpx rgba(44, 242, 255, 0.6);
 }
-.nav-label { font-size: 22rpx; color: var(--ink-dim); letter-spacing: 2rpx; }
+.nav-label { font-size: 21rpx; color: var(--ink-2); letter-spacing: 2rpx; }

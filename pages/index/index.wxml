@@ -1,29 +1,46 @@
 <view class="page index-page {{largeFont?'large-font':''}}">
-  <!-- 品牌区：印章 + 标题 + 胜率，替代原来居中两行字 -->
-  <view class="brand">
-    <view class="brand-seal"><text class="seal-txt">麻</text></view>
-    <view class="brand-main">
-      <view class="brand-title">陕北捉老麻</view>
-      <view class="brand-sub">夜 宴 牌 局 · 娱 乐 积 分</view>
+  <!-- HERO：这块决定第一眼是不是"游戏"。大字号 + 双色辉光 + 竖向水印，替代原来的小印章 + 两行字 -->
+  <view class="hero">
+    <view class="hero-scan"></view>
+    <view class="hero-top">
+      <view class="hero-kicker"><text class="k-dot"></text>SHAANBEI · NEON SHADOW</view>
+      <view class="hero-hud" data-page="stats" bindtap="onNav">
+        <view class="hud-row">
+          <text class="hud-num">{{statRate}}</text>
+          <text class="hud-unit">%</text>
+        </view>
+        <view class="hud-cap">胜率 · {{statGames}} 局</view>
+      </view>
     </view>
-    <view class="brand-stat" data-page="stats" bindtap="onNav">
-      <view class="stat-num">{{statRate}}<text class="stat-pct">%</text></view>
-      <view class="stat-cap">胜率</view>
+
+    <view class="hero-title">
+      <view class="hero-pre">陕 北</view>
+      <view class="glitch" data-text="捉老麻">捉老麻</view>
+      <view class="hero-en">ZHUO LAO MA</view>
+    </view>
+
+    <view class="hero-tags">
+      <text class="hero-tag">48 张牌 · 唯一 1 张 2</text>
+      <text class="hero-tag">见 K 必出 A</text>
+      <text class="hero-tag">人机 · 热座</text>
     </view>
   </view>
 
-  <!-- 续局：做成"未完成手牌"的条带，主按钮唯一 -->
+  <!-- 续局：霓虹告警条 -->
   <view class="resume" wx:if="{{hasSession}}">
-    <view class="resume-tag"><text>未</text><text>完</text><text>成</text></view>
+    <view class="resume-bar"></view>
     <view class="resume-body">
+      <view class="resume-kicker"><text class="live-dot"></text>未完成 · PAUSED</view>
       <view class="resume-title">接着上一局</view>
       <view class="resume-desc">{{sessionDesc}}</view>
     </view>
-    <view class="resume-drop" bindtap="onDiscardSession">放弃</view>
-    <button class="resume-go" bindtap="onContinue">继续</button>
+    <view class="resume-actions">
+      <view class="resume-go" bindtap="onContinue">继续</view>
+      <view class="resume-drop" bindtap="onDiscardSession">放弃</view>
+    </view>
   </view>
 
-  <!-- 主卡：开局设置。三项合成"设置条"，不再堆三个分段控件 -->
+  <!-- 主卡：开局设置 -->
   <view class="panel board">
     <view class="board-head">
       <view class="board-title">快速开局</view>
@@ -56,7 +73,7 @@
     <button class="btn btn-block btn-start" bindtap="onStartAi">开 始 对 局</button>
   </view>
 
-  <!-- 每日挑战：日期块 + 文案 + 右侧动作，替代又一块同构面板 -->
+  <!-- 每日挑战：酸性描边卡，日期做成发光数字 -->
   <view class="daily" bindtap="onDaily">
     <view class="daily-date">
       <view class="daily-d">{{dayNum}}</view>
@@ -69,7 +86,7 @@
     <view class="daily-cta">{{dailyDone ? '再练' : '开战'}}</view>
   </view>
 
-  <!-- 同屏热座：人数选择与按钮同排，占一行高度 -->
+  <!-- 同屏热座 -->
   <view class="panel hotseat">
     <view class="hotseat-head">
       <view class="hotseat-title">同屏热座</view>

@@ -9,10 +9,10 @@
     "pages/privacy/privacy"
   ],
   "window": {
-    "navigationBarBackgroundColor": "#2A1216",
+    "navigationBarBackgroundColor": "#04060C",
     "navigationBarTextStyle": "white",
     "navigationBarTitleText": "陕北捉老麻",
-    "backgroundColor": "#1B1018",
+    "backgroundColor": "#04060C",
     "backgroundTextStyle": "light",
     "enablePullDownRefresh": false
   },

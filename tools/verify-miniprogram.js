@@ -64,7 +64,8 @@ ok(!exists('miniprogram'), '不存在多余的 miniprogram/ 嵌套目录');
   ok(exists('assets/audio/' + f), '音频 ' + f);
 });
 ok(!exists('assets/audio/bgm.wav'), '未压缩 WAV 已清理（只保留 mp3，省约 258KB）');
-ok(exists('utils/audio.js') && exists('utils/fx.js'), '音频/特效模块存在');
+ok(exists('utils/audio.js'), '音频模块存在');
+ok(!exists('utils/fx.js'), '背景特效已改为纯 CSS 层，canvas 实现已移除');
 ok(exists('utils/privacy.js'), '隐私/相册授权模块存在');
 
 console.log('\n=== 7. 关键能力接入检查 ===');
@@ -166,7 +167,12 @@ const packKB = walkSize(root) / 1024;
 ok(packKB < 2048, '预估打包体积 < 2MB（实际 ' + packKB.toFixed(0) + ' KB）');
 
 console.log('\n=== 12. 游戏性优化（牌堆 / 先手 / 教学 / 每日挑战 / 逐局） ===');
-ok(/removeRanks: \{ '2': 1 \}, totalCards: 51/.test(bundleSrc), '3 人局改为 51 张（保留 4 张 A、3 张 2）');
+ok(/removeRanks: \{ '2': 3, 'A': 1 \}, totalCards: 48/.test(bundleSrc), '牌堆为 48 张标准堆（1 张 2、3 张 A）');
+const rulesWxmlSrc = fs.readFileSync(path.join(root, 'pages/rules/rules.wxml'), 'utf8');
+ok(/48 张/.test(rulesWxmlSrc) && /只有 1 张 2/.test(rulesWxmlSrc), '规则页写明 48 张、全场只有 1 张 2');
+ok(/48 张/.test(indexWxml) && /1 张 2/.test(indexWxml), '首页标注 48 张、唯一 1 张 2');
+ok(!/51 张|52 张全牌/.test(indexWxml + rulesWxmlSrc + bundleSrc.replace(/\/\/[^\n]*/g, '')),
+  '不再出现 51/52 张的旧牌堆（含注释外的代码与页面文案）');
 ok(/typeof opt\.firstSeat === 'number'/.test(bundleSrc), '引擎支持指定先出座位');
 ok(/firstHandDone: explicitFirst/.test(bundleSrc), '指定先手时跳过"首手含红桃3"约束');
 ok(/nextFirstSeat/.test(gameSrc), '轮次内由上一局末位先出');
@@ -180,7 +186,6 @@ ok(/onDaily/.test(indexSrc), '首页有每日挑战入口');
 ok(/dailyDesc/.test(indexWxml), '首页展示今日挑战成绩');
 ok(/history/.test(resultSrc) && /hist-grid/.test(resultWxml), '结算页展示逐局得分');
 ok(/roundSize > 1/.test(resultWxml), '单局模式不显示轮次面板');
-ok(/51 张/.test(fs.readFileSync(path.join(root, 'pages/rules/rules.wxml'), 'utf8')), '规则页牌堆文案已同步');
 ok(/末位先出/.test(fs.readFileSync(path.join(root, 'pages/rules/rules.wxml'), 'utf8')), '规则页说明末位先出');
 
 console.log('\n=== 13. 运行时事故修复（快照 / 轮次 / 跳转 / 遮挡 / 静音） ===');
@@ -216,32 +221,92 @@ const settingsWxml2 = fs.readFileSync(path.join(root, 'pages/settings/settings.w
 const settingsSrc = fs.readFileSync(path.join(root, 'pages/settings/settings.js'), 'utf8');
 ok(/bindtap="onPrivacy"/.test(settingsWxml2) && /pages\/privacy\/privacy/.test(settingsSrc), '设置页有可点开的隐私指引入口');
 ok(/openGuide/.test(privacySrc) && /openGuide/.test(resultSrc), '保存失败时引导到指引页（而非无用的 openSetting）');
-const fxSrc = fs.readFileSync(path.join(root, 'utils/fx.js'), 'utf8');
-ok(/TARGET_MS = 30/.test(fxSrc), '特效帧率上限 30fps（阈值按 16ms 时间片对齐）');
-ok(/createOffscreenCanvas/.test(fxSrc), '静态层预渲染到离屏画布');
-ok(/ctx\.drawImage\(bg, 0, 0, w, h\)/.test(fxSrc), '每帧只 blit 静态层');
-ok(/lanternSprite/.test(fxSrc) && /globalAlpha/.test(fxSrc), '灯笼光晕改为贴图缩放（不再逐帧建渐变）');
-ok(/STAR_COUNT = 56/.test(fxSrc) && /LANTERN_COUNT = 4/.test(fxSrc), '粒子数量已下调');
-ok(/cancelAnimationFrame/.test(fxSrc), 'stop 时取消已排队的帧');
-ok(/if \(this\.fx\) this\.fx\.start\(\)/.test(gameSrc), '回前台恢复特效（原实现 onHide 停掉后再不恢复）');
+// [FIX 2026-11-19] 背景特效从原生 canvas 换成纯 CSS 层。
+// canvas 是原生组件，层级不受 z-index 完全控制，一旦盖住同层内容，页面就是"存在但看不见"。
+// 这里改为断言"牌桌页不再有 canvas"，防止这段历史问题被重新引入。
+const gameWxmlBg = fs.readFileSync(path.join(root, 'pages/game/game.wxml'), 'utf8');
+const gameWxssBg = fs.readFileSync(path.join(root, 'pages/game/game.wxss'), 'utf8');
+ok(!/<canvas/.test(gameWxmlBg), '牌桌页不再使用原生 canvas（消除层叠遮挡风险）');
+ok(!/fx-canvas/.test(gameWxssBg) && !/require\('\.\.\/\.\.\/utils\/fx\.js'\)/.test(gameSrc),
+  '牌桌页已完全脱离 canvas 特效模块');
+ok(/class="sky"/.test(gameWxmlBg) && /\.sky \{[\s\S]{0,400}linear-gradient\(180deg, #160A1E/.test(gameWxssBg),
+  '夜空由 CSS 渐变层绘制（顶部洋红雾 → 底部青辉）');
+ok(/\.mote[\s\S]{0,300}moteFloat/.test(gameWxssBg), '光尘为 CSS 动画，不再有逐帧脚本');
+ok(!/\.game-page \{[^}]*overflow: hidden/.test(gameWxssBg), '页面根不再 overflow:hidden（避免整页被裁成 0 高）');
 
-console.log('\n=== 15. 视觉系统（陕北夜宴 · 剪纸鎏金） ===');
+console.log('\n=== 15. 视觉系统（赛博皮影 · NEON SHADOW） ===');
 const appWxss = fs.readFileSync(path.join(root, 'app.wxss'), 'utf8');
 const gameWxss = fs.readFileSync(path.join(root, 'pages/game/game.wxss'), 'utf8');
 const indexWxss = fs.readFileSync(path.join(root, 'pages/index/index.wxss'), 'utf8');
-ok(/--gold:\s*#EBCB84/.test(appWxss) && /--paper:\s*#F8F1E1/.test(appWxss), '全局色板已建立（鎏金/羊皮纸/朱砂）');
-ok(/\.btn\s*\{[^}]*0 8rpx 0 #6E4A1E/.test(appWxss), '主按钮有实体厚度（底部暗边 + 顶部高光）');
-ok(/\.pill-group/.test(appWxss) && /\.pill\.on/.test(appWxss), '分段选择改为金色药丸，不再是系统控件');
-ok(/\.card-rank\s*\{[^}]*font-size: 36rpx/.test(appWxss) && /\.card-mark/.test(appWxss), '牌面为羊皮纸 + 角标 + 花色暗纹');
-ok(/\.panel-title::before/.test(appWxss), '面板标题带菱形金饰');
-ok(/\.hand-row/.test(gameWxss) && /\.hand-card\.selected/.test(gameWxss), '手牌支持叠压与选中抬起');
+const resultWxss = fs.readFileSync(path.join(root, 'pages/result/result.wxss'), 'utf8');
+const resultSrc2 = fs.readFileSync(path.join(root, 'pages/result/result.js'), 'utf8');
+
+// 色板：近黑底 + 三支霓虹。断言具体色值，防止后续改动把整体调回低对比暖色。
+ok(/--void:\s*#04060C/.test(appWxss) && /--cyan:\s*#2CF2FF/.test(appWxss) && /--magenta:\s*#FF2D7A/.test(appWxss),
+  '全局色板为近黑底 + 激光青 / 电光洋红 / 酸性黄绿');
+ok(/--gold:\s*#2CF2FF/.test(appWxss), '旧变量名 --gold 已指向霓虹青（次级页面不会退回暖色）');
+// 首页冲击力：大标题 + 故障层 + 竖向水印
+ok(/\.glitch\s*\{[^}]*font-size:\s*104rpx/.test(indexWxss), '首页主标题为 104rpx 超粗字');
+ok(/\.glitch::before[\s\S]{0,200}attr\(data-text\)/.test(indexWxss) && /data-text="捉老麻"/.test(indexWxml),
+  '标题带双色错位故障层');
+ok(/\.hero::after[\s\S]{0,220}rgba\(255, 45, 122, 0\.22\)/.test(indexWxss), 'HERO 用洋红辉光做纵深（不用低透明度大字，避免糊成灰块）');
+ok(/\.hero-scan[\s\S]{0,300}animation:\s*heroScan/.test(indexWxss), 'HERO 有缓慢下扫的扫描带');
+ok(/\.hud-num\s*\{[^}]*font-size:\s*56rpx/.test(indexWxss), '胜率做成 HUD 大字读数');
+// 面板 / 按钮 / 分段
+ok(/\.panel::before[\s\S]{0,240}box-shadow:\s*0 0 14rpx/.test(appWxss) && /\.panel::after[\s\S]{0,160}border-right/.test(appWxss),
+  '面板为黑玻璃 + 上沿扫描线 + 右下角刻度');
+ok(/\.btn\s*\{[\s\S]{0,700}linear-gradient\(100deg, #D9FF45/.test(appWxss) && /animation:\s*btnSheen/.test(appWxss),
+  '主按钮为酸性渐变 + 持续扫光');
+ok(/\.btn-outline[\s\S]{0,260}rgba\(44, 242, 255, 0\.46\)/.test(appWxss), '次按钮为青色灯管描边');
+ok(/\.pill\.on\s*\{[\s\S]{0,220}rgba\(255, 45, 122, 0\.55\)/.test(appWxss), '选中项为洋红发光胶囊');
+ok(!/0 8rpx 0 #6E4A1E/.test(appWxss), '旧的鎏金厚底按钮样式已彻底移除');
+// 牌面
+ok(/\.card\s*\{[\s\S]{0,700}rgba\(44, 242, 255, 0\.32\)/.test(appWxss) && /\.card::after/.test(appWxss),
+  '牌面为暗场全息卡（霓虹细边 + 斜向冷光）');
+ok(/\.card\.red \.card-rank\s*\{[^}]*text-shadow/.test(appWxss) && /\.card\.black \.card-rank\s*\{[^}]*text-shadow/.test(appWxss),
+  '点数自带红/青辉光');
+// 牌桌
+ok(/\.r1[\s\S]{0,320}animation:\s*ringSpin 9s linear infinite/.test(gameWxss) && /@keyframes ringSpin/.test(gameWxss),
+  '牌桌有旋转的青色光环');
+ok(/\.r2[\s\S]{0,420}reverse/.test(gameWxss) && /\.table-core[\s\S]{0,700}coreBreath/.test(gameWxss),
+  '内环反向旋转 + 中心呼吸光');
+ok(/\.hand-row/.test(gameWxss) && /\.hand-card\.selected[\s\S]{0,300}rgba\(255, 45, 122, 0\.85\)/.test(gameWxss),
+  '手牌叠压，选中上浮并套洋红光环');
 ok(/handPad: handPad/.test(gameSrc) && /handDense: dense/.test(gameSrc), '叠压步长按牌数实时计算');
+ok(/var CW = dense \? 86 : 100/.test(gameSrc) && /\.hand-row\.dense \.card \{ width: 86rpx/.test(gameWxss),
+  '叠压常量与 CSS 牌宽一致（防止末张挤出屏幕）');
 ok(/margin-left:\{\{index===0\?0:handPad\}\}rpx/.test(gameWxml), '手牌逐张应用负边距');
-ok(!/\.table::after/.test(gameWxss) && /table-empty/.test(gameWxml), '空场用居中的"自由出牌"提示，左上角只标轮次（避免同一句话出现两次）');
-ok(/\.daily-date/.test(indexWxss) && /\.daily-cta/.test(indexWxss), '每日挑战改为日期块 + 动作条');
+ok(!/\.table::after/.test(gameWxss) && /table-empty/.test(gameWxml), '空场用居中提示，左上角只标轮次');
+ok(/\.table-empty[\s\S]{0,260}emptyFlicker/.test(gameWxss), '空场提示带微弱闪烁');
+// 结算
+ok(/\.medal-ring[\s\S]{0,220}medalSpin/.test(resultWxss) && /\.result-badge\.win[\s\S]{0,300}#E6FF6A/.test(resultWxss),
+  '结算奖章为双层旋转光环 + 酸性发光章');
+ok(/\.score-delta\.up\s*\{[^}]*var\(--magenta\)/.test(resultWxss), '正分用洋红、负分用青绿（符合国内涨跌习惯）');
+// 倍率留痕：一轮 5 局里哪一局炸过，必须在结算页能一眼看到
+ok(/class="hist-mx"/.test(resultWxml) && /\.hist-cell\.bombed/.test(resultWxss), '逐局得分标出炸过的局与倍率');
+ok(/roundPeakText/.test(resultWxml) && /\.total-tip\.peak/.test(resultWxss), '轮次结束显示本轮最高倍率');
+ok(/multiplier:\s*s\.multiplier/.test(gameSrc), '逐局历史记录倍率（轮次汇总有据可依）');
+// 背景特效
+ok(/\.sky-glow\.g1[\s\S]{0,200}rgba\(44, 242, 255, 0\.16\)/.test(gameWxssBg), '夜空左上角带青色辉光');
+ok(/\.sky-glow\.g2[\s\S]{0,200}rgba\(255, 45, 122, 0\.14\)/.test(gameWxssBg), '夜空右下角带洋红辉光');
+ok(/#04060C/.test(appCfg.window.navigationBarBackgroundColor || ''), '导航栏底色与新主题一致');
+// 战绩图
+ok(/rgba\(255,45,122,0\.40\)/.test(resultSrc2) && /N E O N   S H A D O W/.test(resultSrc2), '战绩分享图同步为霓虹风格');
+// 首页其余形态
+ok(/\.daily-date/.test(indexWxss) && /\.daily-cta/.test(indexWxss), '每日挑战为日期块 + 动作条');
 ok(/\.hotseat-row/.test(indexWxss) && /\.hotseat-pills/.test(indexWxss), '同屏热座人数与按钮同排');
-ok(/\.brand-seal/.test(indexWxss), '品牌区有印章标识');
-ok(!/\.panel-title \{[^}]*border-left/.test(appWxss), '旧的左侧竖线标题已移除');
+ok(/\.resume-bar/.test(indexWxss) && /\.live-dot/.test(indexWxss), '续局条为洋红告警条 + 呼吸点');
+ok(!/\.panel-title \{[^}]*border-left/.test(appWxss), '旧标题样式已移除');
+// 实时倍率：2026-11-19 修复前，倍率只在结算页出现，牌桌打炸毫无反馈
+ok(/mult-chip/.test(gameWxml) && /multiplier > 1/.test(gameWxml), '牌桌头部挂实时倍率徽标（×1 时不占版面）');
+ok(/@keyframes multPop/.test(gameWxss) && /\.mult-flash/.test(gameWxss), '翻倍瞬间有弹出动画');
+ok(/computeBombMultiplier/.test(gameSrc) && /multFlash/.test(gameSrc), '牌桌倍率走公共函数，翻倍才闪烁');
+ok(/computeBombMultiplier:\s*computeBombMultiplier/.test(bundleSrc), '倍率计算函数已导出，牌桌与结算同口径');
+// 炸弹高光：稀有事件必须有对应量级的反馈，但不能挡住操作
+ok(/\.bomb-banner[\s\S]{0,220}position:\s*fixed/.test(gameWxss) && /\.bomb-banner[\s\S]{0,320}pointer-events:\s*none/.test(gameWxss),
+  '炸弹横幅为纯展示层（fixed + pointer-events:none，不拦点击）');
+ok(/wx:if="\{\{bombBanner\}\}"/.test(gameWxml) && /@keyframes bombIn/.test(gameWxss), '横幅存在且带入场动画');
+ok(/clearBombTimer/.test(gameSrc) && /bombBannerText/.test(gameSrc), '横幅文案由倍率驱动，定时器可随页面卸载取消');
 
 console.log('\n总计 PASS=' + pass + '  FAIL=' + fail + (todo ? '  TODO=' + todo : ''));
 if (todo) console.log('TODO 项需在小程序后台/资质侧人工完成，不影响代码构建。');

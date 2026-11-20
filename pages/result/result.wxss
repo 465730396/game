@@ -1,133 +1,214 @@
-.result-page { padding-top: 48rpx; }
+.result-page { padding-top: 40rpx; }
 
-/* ---------- 结算头：奖章 + 大标题 ---------- */
-.result-head { position: relative; text-align: center; margin-bottom: 34rpx; }
+/* ---------- 结算头：双层旋转光环 + 发光奖章 ---------- */
+.result-head { position: relative; text-align: center; margin-bottom: 32rpx; }
 .medal-wrap {
   position: relative;
-  width: 190rpx; height: 190rpx;
-  margin: 0 auto 18rpx;
+  width: 250rpx; height: 250rpx;
+  margin: 0 auto 6rpx;
   display: flex; align-items: center; justify-content: center;
 }
+/* 背后的冷光晕：让奖章看起来在发光，而不是贴了个圆 */
 .medal-wrap::before {
   content: '';
-  position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  position: absolute; left: 50%; top: 50%;
+  width: 280rpx; height: 280rpx;
+  margin: -140rpx 0 0 -140rpx;
   border-radius: 50%;
-  background-image: radial-gradient(circle, rgba(235, 203, 132, 0.30) 0%, rgba(235, 203, 132, 0.06) 52%, rgba(0, 0, 0, 0) 72%);
+  background-image: radial-gradient(circle, rgba(44, 242, 255, 0.28) 0%, rgba(44, 242, 255, 0.06) 46%, rgba(0, 0, 0, 0) 70%);
 }
+.medal-wrap.lose::before {
+  background-image: radial-gradient(circle, rgba(255, 45, 122, 0.30) 0%, rgba(255, 45, 122, 0.06) 46%, rgba(0, 0, 0, 0) 70%);
+}
+.medal-ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 238rpx; height: 238rpx;
+  margin: -119rpx 0 0 -119rpx;
+  border-radius: 50%;
+  border: 2rpx solid transparent;
+  border-top-color: var(--cyan);
+  border-left-color: rgba(44, 242, 255, 0.32);
+  animation: medalSpin 8s linear infinite;
+}
+.medal-ring.inner {
+  width: 200rpx; height: 200rpx;
+  margin: -100rpx 0 0 -100rpx;
+  border-top-color: transparent;
+  border-left-color: transparent;
+  border-bottom-color: var(--magenta);
+  border-right-color: rgba(255, 45, 122, 0.26);
+  animation: medalSpin 11s linear infinite reverse;
+}
+.medal-wrap.lose .medal-ring { border-top-color: var(--magenta); border-left-color: rgba(255, 45, 122, 0.3); }
+.medal-wrap.lose .medal-ring.inner { border-bottom-color: var(--cyan); border-right-color: rgba(44, 242, 255, 0.26); }
+@keyframes medalSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 .result-badge {
   position: relative;
-  width: 128rpx; height: 128rpx; line-height: 128rpx;
+  width: 146rpx; height: 146rpx;
+  line-height: 146rpx;
   border-radius: 50%;
   text-align: center;
-  font-size: 48rpx; font-weight: 800; letter-spacing: 2rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 56rpx;
+  font-weight: 900;
+  letter-spacing: 0;
 }
 .result-badge.win {
-  background-image: linear-gradient(160deg, #F8E4AE 0%, #DCB76C 52%, #B98A45 100%);
-  color: #3A1B12;
-  box-shadow: 0 12rpx 32rpx rgba(199, 154, 78, 0.45), inset 0 2rpx 0 rgba(255, 255, 255, 0.7), 0 0 0 6rpx rgba(235, 203, 132, 0.14);
+  background-image: linear-gradient(150deg, #E6FF6A 0%, #8CFF9E 44%, #2CF2FF 100%);
+  color: #04121A;
+  box-shadow:
+    0 0 46rpx rgba(44, 242, 255, 0.55),
+    0 0 90rpx rgba(201, 255, 36, 0.26),
+    inset 0 3rpx 0 rgba(255, 255, 255, 0.75),
+    inset 0 -8rpx 22rpx rgba(0, 70, 80, 0.28);
+  text-shadow: 0 2rpx 0 rgba(255, 255, 255, 0.35);
 }
 .result-badge.lose {
-  background-image: linear-gradient(160deg, rgba(169, 50, 40, 0.92), rgba(82, 24, 22, 0.96));
-  color: #FFE4DC;
-  border: 2rpx solid rgba(222, 90, 76, 0.55);
-  box-shadow: 0 12rpx 30rpx rgba(0, 0, 0, 0.46), inset 0 1rpx 0 rgba(255, 180, 165, 0.3);
+  background-image: linear-gradient(150deg, #FF5C93 0%, #D3124F 58%, #6E0828 100%);
+  color: #FFF0F6;
+  box-shadow:
+    0 0 40rpx rgba(255, 45, 122, 0.50),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.40),
+    inset 0 -8rpx 22rpx rgba(60, 0, 20, 0.40);
+  text-shadow: 0 0 22rpx rgba(255, 255, 255, 0.55);
 }
 .result-badge.draw {
-  background-image: linear-gradient(160deg, rgba(235, 203, 132, 0.20), rgba(235, 203, 132, 0.05));
-  color: var(--gold);
-  border: 2rpx solid rgba(235, 203, 132, 0.45);
-  font-size: 40rpx;
+  background-image: linear-gradient(150deg, rgba(44, 242, 255, 0.16), rgba(44, 242, 255, 0.03));
+  color: var(--cyan);
+  border: 2rpx solid rgba(44, 242, 255, 0.55);
+  font-size: 44rpx;
+  box-shadow: 0 0 30rpx rgba(44, 242, 255, 0.25), inset 0 0 30rpx rgba(44, 242, 255, 0.12);
 }
+
 .result-title {
-  font-size: 42rpx; font-weight: 700; color: var(--ink); letter-spacing: 4rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 46rpx;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: 3rpx;
+  text-shadow: 0 0 28rpx rgba(44, 242, 255, 0.35);
 }
-.result-sub { font-size: 21rpx; color: var(--gold-dim); margin-top: 12rpx; letter-spacing: 1rpx; }
+.result-sub { font-size: 20rpx; color: var(--ink-2); margin-top: 12rpx; letter-spacing: 3rpx; }
 .result-multi {
-  display: inline-block; margin-top: 14rpx;
-  padding: 4rpx 16rpx; border-radius: 8rpx;
-  font-size: 21rpx; color: #FFD9D3;
-  background: rgba(169, 50, 40, 0.55);
-  border: 1rpx solid rgba(222, 90, 76, 0.5);
+  display: inline-block;
+  margin-top: 18rpx;
+  padding: 10rpx 24rpx;
+  font-size: 23rpx;
+  letter-spacing: 2rpx;
+  color: var(--magenta);
+  background: rgba(255, 45, 122, 0.10);
+  border: 1rpx solid rgba(255, 45, 122, 0.55);
+  box-shadow: 0 0 20rpx rgba(255, 45, 122, 0.25);
+  animation: multiIn 480ms cubic-bezier(0.2, 0.9, 0.2, 1);
 }
-.daily-tip { font-size: 20rpx; color: var(--gold-dim); margin-top: 14rpx; line-height: 1.5; }
+@keyframes multiIn {
+  0% { opacity: 0; transform: translateY(-8rpx) scale(1.08); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.daily-tip { font-size: 19rpx; color: var(--ink-3); margin-top: 14rpx; line-height: 1.5; }
 
 /* ---------- 积分榜 ---------- */
 .score-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18rpx 0;
-  border-bottom: 1rpx solid rgba(235, 203, 132, 0.08);
+  border-bottom: 1rpx solid rgba(44, 242, 255, 0.09);
 }
 .score-row:last-child { border-bottom: none; }
 .score-left { display: flex; align-items: center; gap: 16rpx; min-width: 0; }
 .rank-chip {
-  width: 46rpx; height: 46rpx; line-height: 46rpx; text-align: center; flex: 0 0 auto;
-  border-radius: 50%;
-  background: rgba(235, 203, 132, 0.10);
-  color: var(--gold-dim);
-  font-size: 23rpx; font-weight: 700;
+  width: 46rpx; height: 46rpx; line-height: 46rpx;
+  text-align: center; flex: 0 0 auto;
+  border-radius: 2rpx;
+  background: rgba(44, 242, 255, 0.08);
+  border: 1rpx solid rgba(44, 242, 255, 0.20);
+  color: var(--ink-2);
+  font-size: 22rpx; font-weight: 800;
   font-family: "DIN Alternate", sans-serif;
 }
 .rank-chip.first {
-  background-image: linear-gradient(180deg, #F6E0A6, #C79A4E);
-  color: #3A1B12;
-  box-shadow: 0 4rpx 12rpx rgba(199, 154, 78, 0.4);
+  background-image: linear-gradient(120deg, #E6FF6A, #2CF2FF);
+  border-color: transparent;
+  color: #04121A;
+  box-shadow: 0 0 22rpx rgba(44, 242, 255, 0.5);
 }
 .rank-chip.second {
-  background-image: linear-gradient(180deg, rgba(226, 226, 232, 0.9), rgba(150, 152, 162, 0.9));
-  color: #23201F;
+  background-image: linear-gradient(180deg, rgba(214, 226, 240, 0.92), rgba(126, 150, 173, 0.92));
+  border-color: transparent;
+  color: #0A1220;
 }
 .score-info { display: flex; flex-direction: column; min-width: 0; }
 .score-name { font-size: 28rpx; color: var(--ink); }
-.score-sub { font-size: 21rpx; color: var(--gold-dim); margin-top: 4rpx; }
+.score-sub { font-size: 19rpx; color: var(--ink-3); margin-top: 4rpx; letter-spacing: 1rpx; }
 .score-delta {
-  font-size: 34rpx; font-weight: 800;
+  font-size: 40rpx;
+  font-weight: 900;
+  letter-spacing: -1rpx;
   font-family: "DIN Alternate", "Helvetica Neue", sans-serif;
 }
-.score-delta.up { color: var(--red-2); }
-.score-delta.down { color: var(--jade); }
+.score-delta.up { color: var(--magenta); text-shadow: 0 0 20rpx rgba(255, 45, 122, 0.5); }
+.score-delta.down { color: var(--jade); text-shadow: 0 0 18rpx rgba(53, 230, 168, 0.4); }
 
 /* ---------- 本轮累计 ---------- */
 .total-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14rpx 0;
-  border-bottom: 1rpx solid rgba(235, 203, 132, 0.08);
+  border-bottom: 1rpx solid rgba(44, 242, 255, 0.08);
 }
-.total-name { font-size: 26rpx; color: var(--ink); }
-.total-val { font-size: 29rpx; font-weight: 700; font-family: "DIN Alternate", sans-serif; }
-.total-val.up { color: var(--red-2); }
+.total-name { font-size: 25rpx; color: var(--ink); }
+.total-val { font-size: 30rpx; font-weight: 800; font-family: "DIN Alternate", sans-serif; }
+.total-val.up { color: var(--magenta); }
 .total-val.down { color: var(--jade); }
-.total-tip { font-size: 21rpx; color: var(--gold-dim); margin-top: 14rpx; }
+.total-tip { font-size: 20rpx; color: var(--ink-3); margin-top: 14rpx; }
 .hist-block { margin-top: 18rpx; }
-.hist-grid { display: flex; gap: 10rpx; margin-top: 10rpx; }
+.hist-grid { display: flex; gap: 8rpx; margin-top: 10rpx; }
 .hist-cell {
   flex: 1; text-align: center;
-  background: rgba(235, 203, 132, 0.06);
-  border: 1rpx solid rgba(235, 203, 132, 0.10);
-  border-radius: 10rpx;
   padding: 10rpx 0;
+  background: rgba(44, 242, 255, 0.05);
+  border: 1rpx solid rgba(44, 242, 255, 0.12);
+  border-radius: 2rpx;
 }
-.hist-idx { font-size: 19rpx; color: var(--gold-dim); }
-.hist-val { font-size: 26rpx; font-weight: 700; font-family: "DIN Alternate", sans-serif; }
-.hist-val.up { color: var(--red-2); }
+.hist-idx { font-size: 17rpx; color: var(--ink-3); }
+.hist-val { font-size: 26rpx; font-weight: 800; font-family: "DIN Alternate", sans-serif; }
+.hist-val.up { color: var(--magenta); }
 .hist-val.down { color: var(--jade); }
-.hist-val.flat { color: var(--gold-dim); }
+.hist-val.flat { color: var(--ink-2); }
+/* [FIX 2026-11-19] 炸过的那一局单独标出来：洋红描边 + 倍率角标，
+   一轮打完扫一眼就知道分差是哪一局被倍率放大的。 */
+.hist-cell.bombed {
+  border-color: rgba(255, 45, 122, 0.55);
+  background-color: rgba(255, 45, 122, 0.08);
+  box-shadow: inset 0 0 18rpx rgba(255, 45, 122, 0.16);
+}
+.hist-mx {
+  margin-top: 2rpx;
+  font-size: 16rpx; letter-spacing: 1rpx;
+  color: var(--magenta);
+}
+.total-tip.peak {
+  color: var(--magenta);
+  letter-spacing: 2rpx;
+  text-shadow: 0 0 16rpx rgba(255, 45, 122, 0.45);
+}
 
 /* ---------- 底部操作 ---------- */
-.btn-row { display: flex; gap: 18rpx; margin-top: 12rpx; }
+.btn-row { display: flex; gap: 16rpx; margin-top: 10rpx; }
 .btn-row .btn { flex: 1; }
 .share-row {
   display: flex; align-items: center; justify-content: center; gap: 18rpx;
   margin-top: 30rpx;
 }
 .share-link {
-  padding: 0; margin: 0; background: transparent; border: none; line-height: 1.6;
-  font-size: 24rpx; color: var(--gold-dim); letter-spacing: 1rpx;
-  border-bottom: 1rpx solid rgba(235, 203, 132, 0.22);
+  padding: 0; margin: 0;
+  background: transparent; border: none; line-height: 1.6;
+  font-size: 23rpx; color: var(--ink-2); letter-spacing: 1rpx;
+  border-bottom: 1rpx solid rgba(44, 242, 255, 0.22);
 }
 .share-link::after { border: none; }
 .share-btn { display: inline-block; }
-.share-dot { color: var(--gold-dim); font-size: 24rpx; }
+.share-dot { color: var(--ink-3); font-size: 23rpx; }
 
 .poster-canvas { position: fixed; left: -9999px; top: 0; width: 375px; height: 500px; }

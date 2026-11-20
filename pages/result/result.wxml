@@ -1,13 +1,18 @@
 <view class="page result-page {{largeFont?'large-font':''}}">
   <view wx:if="{{noData}}" class="result-head">
-    <view class="result-badge draw">—</view>
+    <view class="medal-wrap">
+      <view class="medal-ring"></view>
+      <view class="result-badge draw">—</view>
+    </view>
     <view class="result-title">{{title}}</view>
     <view class="result-sub">结算数据未保留（小程序可能被回收），返回首页可重新开局。</view>
   </view>
 
   <block wx:else>
     <view class="result-head">
-      <view class="medal-wrap">
+      <view class="medal-wrap {{badgeClass}}">
+        <view class="medal-ring"></view>
+        <view class="medal-ring inner"></view>
         <view class="result-badge {{badgeClass}}">{{badgeText}}</view>
       </view>
       <view class="result-title">{{title}}</view>
@@ -41,12 +46,14 @@
       <view wx:if="{{roundDone && history.length}}" class="hist-block">
         <view class="total-tip">逐局得分</view>
         <view class="hist-grid">
-          <view wx:for="{{history}}" wx:key="no" class="hist-cell">
+          <view wx:for="{{history}}" wx:key="no" class="hist-cell {{item.multiplier>1?'bombed':''}}">
             <view class="hist-idx">第{{item.no}}局</view>
             <view class="hist-val {{item.delta>0?'up':item.delta<0?'down':'flat'}}">{{item.delta>0?'+':''}}{{item.delta}}</view>
+            <view wx:if="{{item.multiplier>1}}" class="hist-mx">×{{item.multiplier}}</view>
           </view>
         </view>
       </view>
+      <view wx:if="{{roundPeakText}}" class="total-tip peak">{{roundPeakText}}</view>
       <view wx:if="{{roundDone}}" class="total-tip">本轮已结束，开新一轮重新计分</view>
     </view>
   </block>
@@ -60,7 +67,7 @@
   <block wx:if="{{!noData}}">
     <view class="share-row">
       <view class="share-link" bindtap="onSavePoster">保存战绩图</view>
-      <view class="share-dot">·</view>
+      <view class="share-dot">/</view>
       <button class="share-link share-btn" open-type="share">分享给好友</button>
     </view>
   </block>

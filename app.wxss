@@ -1,33 +1,65 @@
-/* 全局设计系统：陕北夜宴 · 剪纸鎏金
-   设计意图（这一版为什么这么改）：
-   1) 旧版所有面板都是同一种灰红方块 + 同一种金色按钮，主次不分，像设置表单而不像游戏。
-      现在建立 3 级层次：漆木台面(panel) / 鎏金主键(btn) / 描边次键(btn-outline)，
-      并用"底部暗边 + 顶部高光"做出实体按键的厚度感。
-   2) 牌桌是主角，牌面必须像牌：羊皮纸底、细金边、左上角点数 + 花色、中央暗纹。
-   3) 标题用衬线（宋体）拉开民俗感，数字用等宽感字重，避免全篇苹方造成的"后台页面"气质。 */
+/* 全局设计系统：赛博皮影 · NEON SHADOW
+   ------------------------------------------------------------------
+   上一版走"漆木 + 鎏金"的暖色民俗路线。问题不在细节，而在整体明度太低、
+   所有元素挤在同一个棕色系里，扫一眼找不到焦点，像旧柜台不像游戏。
+   这一版把整套语汇换掉：
+   1) 底色压到近黑（#04060C），只用三支霓虹：激光青 / 电光洋红 / 酸性黄绿。
+      靠极高对比度做"屏幕在发光"的第一眼冲击，而不是靠更多装饰。
+   2) 所有面改为「黑玻璃 + 1rpx 霓虹细边 + 角标刻度」的 HUD 结构，
+      层级靠亮度与发光强度区分，不再靠色块堆叠。
+   3) 大标题 900 字重 + 双色错位故障层；牌面改成暗场全息卡，点数自带辉光。
+      牌本身成为发光物，而不是贴在桌上的纸片。
+   4) 动效只留三处（按钮扫光 / 牌桌光环旋转 / 标题偶发故障），少而狠，
+      避免全屏乱动在低端机上掉帧。
+   概念上仍是陕北：皮影的剪影、腰鼓的节拍，被翻译成霓虹灯管与 HUD 刻度。 */
+
+/* 变量同时声明在 page 与 .page 两个选择器上。
+   [FIX 2026-11-19] 单一 page 规则一旦被整体丢弃（例如其中某个声明让 WXSS 的 rpx
+   运行时替换失败），所有 var(--x) 会同时失效 —— 文字退回默认黑色，在近黑底上等于隐身，
+   表现就是「页面在、什么都没有」。双份声明让这条链路有冗余。 */
+page,
+.page {
+  /* --- 新色板 --- */
+  --void: #04060C;
+  --void-2: #080E1A;
+  --glass-hi: rgba(18, 30, 50, 0.90);
+  --glass-lo: rgba(6, 10, 20, 0.94);
+  --cyan: #2CF2FF;
+  --cyan-deep: #0C93A8;
+  --magenta: #FF2D7A;
+  --acid: #C9FF24;
+  --violet: #7A5CFF;
+  --ink: #E9F5FF;
+  --ink-2: #7E96AD;
+  --ink-3: #46596D;
+  --jade: #35E6A8;
+  /* --- 兼容旧页面的变量名（规则/统计/设置/隐私仍引用），值全部指向霓虹色 --- */
+  --gold: #2CF2FF;
+  --gold-2: #0C93A8;
+  --gold-dim: #6E879E;
+  --paper: #0B1220;
+  --red: #FF2D7A;
+  --red-2: #FF6FA3;
+  --bg-deep: #04060C;
+  --bg-deep-2: #080E1A;
+  --bg-panel: #0B1220;
+  --bg-panel-2: #131E33;
+}
 
 page {
-  --bg-deep: #0C0709;
-  --bg-deep-2: #1A0F12;
-  --bg-panel: #241315;
-  --bg-panel-2: #321A1D;
-  --gold: #EBCB84;
-  --gold-2: #C79A4E;
-  --gold-dim: #9C7C4C;
-  --ink: #F3E7D3;
-  --ink-dim: #C2AE93;
-  --red: #A93228;
-  --red-2: #DE5A4C;
-  --jade: #6FB98A;
-  --paper: #F8F1E1;
-
-  background-color: var(--bg-deep);
+  background-color: var(--void);
+  /* 三层：顶部洋红雾、左上青光、底部青辉，最后压一层竖向渐变。
+     [FIX 2026-11-19] 这里原来还有两层 1rpx 的 repeating-linear-gradient 网格，已移除：
+     渐变函数里写 rpx 依赖 WXSS 运行时的文本替换，一旦替换失败，整条 page 规则
+     （连同全部 CSS 变量）会被丢弃，所有 var(--ink) 文字退回默认黑色 —— 页面看起来就是空的。 */
   background-image:
-    radial-gradient(120% 46% at 50% -6%, rgba(178, 58, 48, 0.30) 0%, rgba(120, 40, 34, 0.10) 42%, rgba(0, 0, 0, 0) 70%),
-    radial-gradient(90% 40% at 50% 106%, rgba(150, 108, 46, 0.18) 0%, rgba(0, 0, 0, 0) 72%),
-    linear-gradient(180deg, #150C0F 0%, #0C0709 58%, #0A0608 100%);
+    radial-gradient(96% 42% at 50% -10%, rgba(255, 45, 122, 0.30) 0%, rgba(255, 45, 122, 0.06) 46%, rgba(0, 0, 0, 0) 74%),
+    radial-gradient(58% 30% at 4% 2%, rgba(44, 242, 255, 0.18) 0%, rgba(44, 242, 255, 0) 68%),
+    radial-gradient(92% 40% at 50% 108%, rgba(44, 242, 255, 0.20) 0%, rgba(44, 242, 255, 0) 70%),
+    linear-gradient(180deg, #0A1122 0%, #05070E 56%, #03050A 100%);
   color: var(--ink);
-  font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+  font-family: "PingFang SC", "HarmonyOS Sans SC", "Noto Sans SC", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 .page {
@@ -36,176 +68,253 @@ page {
   padding: 24rpx 24rpx calc(52rpx + env(safe-area-inset-bottom));
 }
 
-/* ---------- 漆木台面 ---------- */
+/* ---------- 黑玻璃 HUD 面板 ---------- */
 .panel {
   position: relative;
-  background-image: linear-gradient(165deg, rgba(62, 34, 35, 0.94) 0%, rgba(36, 19, 22, 0.97) 62%, rgba(28, 15, 18, 0.98) 100%);
-  border: 1rpx solid rgba(235, 203, 132, 0.16);
-  border-radius: 24rpx;
-  padding: 28rpx;
+  background-image: linear-gradient(152deg, var(--glass-hi) 0%, rgba(10, 17, 30, 0.92) 58%, var(--glass-lo) 100%);
+  border: 1rpx solid rgba(44, 242, 255, 0.16);
+  border-radius: 6rpx;
+  padding: 30rpx 28rpx;
   margin-bottom: 22rpx;
-  box-shadow: 0 16rpx 34rpx rgba(0, 0, 0, 0.42), inset 0 1rpx 0 rgba(255, 226, 170, 0.10);
+  box-shadow:
+    0 18rpx 44rpx rgba(0, 0, 0, 0.58),
+    inset 0 1rpx 0 rgba(44, 242, 255, 0.16),
+    inset 0 0 40rpx rgba(44, 242, 255, 0.04);
   overflow: hidden;
 }
-/* 台面上沿一道斜射金光，解决"整块颜色平铺"的塑料感 */
+/* 上沿一道发光的扫描线：告诉眼睛"这是一块屏"，而不是一块纸 */
 .panel::before {
   content: '';
   position: absolute;
-  left: 28rpx; right: 28rpx; top: 0;
-  height: 1rpx;
-  background-image: linear-gradient(90deg, rgba(0, 0, 0, 0), rgba(235, 203, 132, 0.55), rgba(0, 0, 0, 0));
+  left: 0; top: 0;
+  width: 44%; height: 2rpx;
+  background-image: linear-gradient(90deg, var(--cyan) 0%, rgba(44, 242, 255, 0.35) 42%, rgba(44, 242, 255, 0) 100%);
+  box-shadow: 0 0 14rpx rgba(44, 242, 255, 0.85);
+}
+/* 右下角洋红刻度角标 */
+.panel::after {
+  content: '';
+  position: absolute;
+  right: 12rpx; bottom: 12rpx;
+  width: 26rpx; height: 26rpx;
+  border-right: 2rpx solid rgba(255, 45, 122, 0.55);
+  border-bottom: 2rpx solid rgba(255, 45, 122, 0.55);
 }
 
 .panel-title {
   display: flex;
   align-items: center;
-  font-size: 29rpx;
-  font-weight: 600;
-  letter-spacing: 2rpx;
-  color: var(--gold);
-  margin-bottom: 20rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
+  font-size: 26rpx;
+  font-weight: 700;
+  letter-spacing: 4rpx;
+  color: var(--cyan);
+  margin-bottom: 22rpx;
+  text-shadow: 0 0 16rpx rgba(44, 242, 255, 0.45);
 }
 .panel-title::before {
   content: '';
-  width: 12rpx; height: 12rpx;
+  width: 4rpx; height: 24rpx;
   margin-right: 14rpx;
-  background: var(--gold);
-  transform: rotate(45deg);
-  box-shadow: 0 0 12rpx rgba(235, 203, 132, 0.7);
   flex: 0 0 auto;
+  background: var(--magenta);
+  box-shadow: 0 0 12rpx rgba(255, 45, 122, 0.9);
+}
+/* 标题右侧延伸的细线，把标题变成一条 HUD 分隔 */
+.panel-title::after {
+  content: '';
+  flex: 1;
+  height: 1rpx;
+  margin-left: 18rpx;
+  background-image: linear-gradient(90deg, rgba(44, 242, 255, 0.40) 0%, rgba(44, 242, 255, 0) 100%);
 }
 
-/* ---------- 按钮：做成有厚度的实体键 ---------- */
+/* ---------- 主按钮：酸性渐变 + 扫光 ---------- */
 .btn {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 92rpx;
-  border-radius: 16rpx;
-  background-image: linear-gradient(180deg, #F6E0A6 0%, #E2C078 34%, #C1934B 72%, #A87A39 100%);
-  color: #3A1B12;
-  font-size: 31rpx;
-  font-weight: 700;
-  letter-spacing: 3rpx;
+  height: 100rpx;
+  border-radius: 4rpx;
+  overflow: hidden;
+  background-image: linear-gradient(100deg, #D9FF45 0%, #8CFF9E 42%, #2CF2FF 100%);
+  color: #04121A;
+  font-size: 32rpx;
+  font-weight: 800;
+  letter-spacing: 5rpx;
   line-height: 1;
   border: none;
   box-shadow:
-    0 8rpx 0 #6E4A1E,
-    0 14rpx 26rpx rgba(0, 0, 0, 0.46),
-    inset 0 2rpx 0 rgba(255, 255, 255, 0.62),
-    inset 0 -3rpx 0 rgba(90, 58, 20, 0.35);
+    0 14rpx 34rpx rgba(44, 242, 255, 0.26),
+    0 0 30rpx rgba(201, 255, 36, 0.16),
+    inset 0 2rpx 0 rgba(255, 255, 255, 0.55),
+    inset 0 -6rpx 16rpx rgba(0, 80, 90, 0.22);
   transition: transform 120ms ease, box-shadow 120ms ease;
 }
 .btn::after { border: none; }
+/* 一道斜向扫光缓慢掠过：整屏唯一的"高光时刻"，让按钮看起来是通电的 */
+.btn::before {
+  content: '';
+  position: absolute;
+  top: -10%; left: -45%;
+  width: 32%; height: 120%;
+  background-image: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.68) 50%, rgba(255, 255, 255, 0) 100%);
+  transform: skewX(-20deg);
+  animation: btnSheen 4.2s ease-in-out infinite;
+}
+@keyframes btnSheen {
+  0%, 62% { left: -45%; }
+  86%, 100% { left: 118%; }
+}
 .btn.button-hover {
-  transform: translateY(5rpx);
-  box-shadow: 0 3rpx 0 #6E4A1E, 0 6rpx 12rpx rgba(0, 0, 0, 0.4), inset 0 2rpx 0 rgba(255, 255, 255, 0.5);
+  transform: translateY(3rpx) scale(0.988);
+  box-shadow: 0 4rpx 12rpx rgba(44, 242, 255, 0.24), inset 0 2rpx 10rpx rgba(0, 40, 50, 0.35);
 }
 .btn[disabled] {
-  background-image: linear-gradient(180deg, rgba(120, 96, 74, 0.55), rgba(70, 52, 40, 0.55));
-  color: rgba(243, 231, 211, 0.35);
-  box-shadow: inset 0 0 0 1rpx rgba(235, 203, 132, 0.12);
+  background-image: none;
+  background-color: rgba(28, 40, 56, 0.55);
+  color: rgba(126, 150, 173, 0.45);
+  box-shadow: inset 0 0 0 1rpx rgba(44, 242, 255, 0.10);
 }
+.btn[disabled]::before { display: none; }
 
+/* ---------- 次键：霓虹灯管描边 ---------- */
 .btn-outline {
-  background-image: linear-gradient(180deg, rgba(235, 203, 132, 0.12), rgba(235, 203, 132, 0.03));
-  color: var(--gold);
-  border: 1rpx solid rgba(235, 203, 132, 0.42);
-  box-shadow: 0 6rpx 0 rgba(58, 34, 14, 0.55), 0 10rpx 20rpx rgba(0, 0, 0, 0.32), inset 0 1rpx 0 rgba(255, 226, 170, 0.16);
-  letter-spacing: 2rpx;
+  background-image: linear-gradient(180deg, rgba(44, 242, 255, 0.13) 0%, rgba(44, 242, 255, 0.02) 100%);
+  color: var(--cyan);
+  border: 1rpx solid rgba(44, 242, 255, 0.46);
+  letter-spacing: 3rpx;
+  box-shadow:
+    inset 0 0 26rpx rgba(44, 242, 255, 0.10),
+    0 10rpx 24rpx rgba(0, 0, 0, 0.45);
 }
+.btn-outline::before { display: none; }
 .btn-outline.button-hover {
-  transform: translateY(4rpx);
-  box-shadow: 0 2rpx 0 rgba(58, 34, 14, 0.55), inset 0 1rpx 0 rgba(255, 226, 170, 0.12);
+  transform: translateY(2rpx);
+  background-image: linear-gradient(180deg, rgba(44, 242, 255, 0.24) 0%, rgba(44, 242, 255, 0.08) 100%);
+  box-shadow: inset 0 0 30rpx rgba(44, 242, 255, 0.22), 0 0 22rpx rgba(44, 242, 255, 0.22);
 }
 .btn-outline[disabled] {
-  border-color: rgba(235, 203, 132, 0.14);
-  color: rgba(235, 203, 132, 0.30);
+  border-color: rgba(126, 150, 173, 0.18);
+  color: rgba(126, 150, 173, 0.34);
   background-image: none;
   box-shadow: none;
 }
 .btn-block { width: 100%; }
 
-/* ---------- 分段选择：做成可按的金牌，不再像系统设置项 ---------- */
+/* ---------- 分段选择：通电的胶囊 ---------- */
 .pill-group {
   display: flex;
-  gap: 10rpx;
-  padding: 8rpx;
-  border-radius: 18rpx;
-  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.42), rgba(0, 0, 0, 0.18));
-  border: 1rpx solid rgba(235, 203, 132, 0.12);
-  box-shadow: inset 0 2rpx 6rpx rgba(0, 0, 0, 0.45);
+  gap: 8rpx;
+  padding: 6rpx;
+  border-radius: 6rpx;
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.50) 0%, rgba(0, 0, 0, 0.24) 100%);
+  border: 1rpx solid rgba(44, 242, 255, 0.14);
+  box-shadow: inset 0 3rpx 10rpx rgba(0, 0, 0, 0.6);
 }
 .pill {
   flex: 1;
-  height: 66rpx;
-  line-height: 66rpx;
+  height: 64rpx;
+  line-height: 64rpx;
   text-align: center;
-  border-radius: 13rpx;
-  font-size: 27rpx;
-  color: var(--ink-dim);
+  border-radius: 4rpx;
+  font-size: 26rpx;
+  color: var(--ink-2);
   letter-spacing: 1rpx;
+  transition: color 120ms ease, background 120ms ease;
 }
 .pill.on {
-  background-image: linear-gradient(180deg, #F3D792 0%, #D2A75B 100%);
-  color: #3A1B12;
-  font-weight: 700;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.45), inset 0 1rpx 0 rgba(255, 255, 255, 0.55);
+  background-image: linear-gradient(118deg, #FF2D7A 0%, #FF6A3D 100%);
+  color: #1A0310;
+  font-weight: 800;
+  text-shadow: none;
+  box-shadow:
+    0 0 22rpx rgba(255, 45, 122, 0.55),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.45);
 }
 
 /* 兼容旧页面（规则/统计/设置仍在用 segmented） */
-.segmented { display: flex; border: 1rpx solid rgba(235, 203, 132, 0.3); border-radius: 14rpx; overflow: hidden; }
+.segmented { display: flex; border: 1rpx solid rgba(44, 242, 255, 0.28); border-radius: 4rpx; overflow: hidden; }
 .segmented .seg {
   flex: 1; text-align: center; padding: 18rpx 0; font-size: 28rpx;
-  color: var(--ink); background: transparent;
-  border-right: 1rpx solid rgba(235, 203, 132, 0.2);
+  color: var(--ink-2); background: transparent;
+  border-right: 1rpx solid rgba(44, 242, 255, 0.16);
 }
 .segmented .seg:last-child { border-right: none; }
-.segmented .seg.on { background: var(--gold); color: #2A1216; font-weight: 600; }
+.segmented .seg.on { background: var(--cyan); color: #04121A; font-weight: 700; }
 
-/* ---------- 牌面：羊皮纸 + 细金边 + 角标 ---------- */
+/* ---------- 牌面：暗场全息卡 ---------- */
 .card {
   position: relative;
-  width: 96rpx;
-  height: 136rpx;
-  border-radius: 12rpx;
+  width: 100rpx;
+  height: 142rpx;
+  border-radius: 8rpx;
   flex: 0 0 auto;
   overflow: hidden;
-  background-color: #FBF4E4;
+  background-color: #0A1120;
   background-image:
-    radial-gradient(120% 90% at 78% 10%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 60%),
-    linear-gradient(168deg, #FFFDF5 0%, #F4E6CB 58%, #E6D5B4 100%);
-  border: 1rpx solid rgba(122, 90, 44, 0.55);
-  box-shadow: 0 6rpx 14rpx rgba(0, 0, 0, 0.45), inset 0 0 0 2rpx rgba(255, 255, 255, 0.65);
+    linear-gradient(158deg, rgba(38, 60, 88, 0.96) 0%, rgba(13, 22, 38, 0.98) 54%, rgba(6, 10, 18, 0.99) 100%);
+  border: 1rpx solid rgba(44, 242, 255, 0.32);
+  box-shadow:
+    0 8rpx 20rpx rgba(0, 0, 0, 0.62),
+    inset 0 0 26rpx rgba(44, 242, 255, 0.13),
+    inset 0 1rpx 0 rgba(255, 255, 255, 0.16);
+}
+/* 斜向冷光：模拟全息卡箔的反射，让牌面有"材质"而不是纯色块 */
+.card::after {
+  content: '';
+  position: absolute;
+  top: -25%; left: -35%;
+  width: 58%; height: 150%;
+  background-image: linear-gradient(100deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 72%);
+  transform: rotate(9deg);
+  pointer-events: none;
 }
 .card-rank {
   position: absolute;
   left: 8rpx; top: 6rpx;
-  font-size: 36rpx;
+  font-size: 38rpx;
   font-weight: 800;
   line-height: 1;
   letter-spacing: -1rpx;
   font-family: "DIN Alternate", "Helvetica Neue", "PingFang SC", sans-serif;
+  z-index: 1;
 }
-.card-suit { position: absolute; left: 9rpx; top: 46rpx; font-size: 26rpx; line-height: 1; }
-/* 牌面中央的淡花色暗纹，让牌在叠压时仍有"这是一张牌"的质感 */
-.card-mark {
+.card-suit {
   position: absolute;
-  right: 6rpx; bottom: 2rpx;
-  font-size: 62rpx;
+  left: 9rpx; top: 50rpx;
+  font-size: 26rpx;
   line-height: 1;
-  opacity: 0.13;
-  transform: rotate(-8deg);
+  opacity: 0.95;
+  z-index: 1;
 }
-.card.red { color: #B02B22; }
-.card.black { color: #241E1B; }
+/* 右下角一枚 L 形刻度：替代原来的大面积花色暗纹。
+   暗底上大色块会糊成灰斑，而细线刻度既能提示"这是张牌"，又不抢点数的注意力。 */
+.card::before {
+  content: '';
+  position: absolute;
+  right: 8rpx; bottom: 8rpx;
+  width: 14rpx; height: 14rpx;
+  border-right: 2rpx solid rgba(255, 255, 255, 0.18);
+  border-bottom: 2rpx solid rgba(255, 255, 255, 0.18);
+  z-index: 1;
+}
+.card.red::before { border-color: rgba(255, 61, 134, 0.55); }
+.card.black::before { border-color: rgba(191, 244, 255, 0.45); }
+.card.red { color: #FF3D86; }
+.card.red .card-rank { text-shadow: 0 0 14rpx rgba(255, 45, 122, 0.85); }
+.card.red .card-suit { text-shadow: 0 0 10rpx rgba(255, 45, 122, 0.7); }
+.card.black { color: #BFF4FF; }
+.card.black .card-rank { text-shadow: 0 0 14rpx rgba(44, 242, 255, 0.80); }
+.card.black .card-suit { text-shadow: 0 0 10rpx rgba(44, 242, 255, 0.65); }
 
 /* ---------- 文本 ---------- */
-.muted { color: var(--gold-dim); font-size: 24rpx; }
+.muted { color: var(--ink-2); font-size: 24rpx; }
 .center { text-align: center; }
-.row-label { font-size: 25rpx; color: var(--ink-dim); margin: 18rpx 0 10rpx; letter-spacing: 1rpx; }
+.row-label {
+  font-size: 21rpx; color: var(--ink-2);
+  margin: 18rpx 0 10rpx; letter-spacing: 3rpx;
+}
 
 /* ---------- 遮罩 ---------- */
 .mask {
@@ -216,40 +325,51 @@ page {
   align-items: center;
   justify-content: center;
   padding: 40rpx;
-  background: rgba(8, 4, 6, 0.90);
+  background: rgba(2, 4, 9, 0.90);
 }
 .mask-card {
   position: relative;
   width: 100%;
   max-width: 600rpx;
   box-sizing: border-box;
-  padding: 44rpx 34rpx 34rpx;
-  border-radius: 26rpx;
-  background-image: linear-gradient(170deg, #3A1F21 0%, #241315 100%);
-  border: 1rpx solid rgba(235, 203, 132, 0.45);
-  box-shadow: 0 24rpx 60rpx rgba(0, 0, 0, 0.6), inset 0 1rpx 0 rgba(255, 226, 170, 0.2);
+  padding: 46rpx 34rpx 34rpx;
+  border-radius: 6rpx;
+  background-image: linear-gradient(165deg, rgba(20, 34, 56, 0.98) 0%, rgba(6, 10, 20, 0.99) 100%);
+  border: 1rpx solid rgba(44, 242, 255, 0.40);
+  box-shadow:
+    0 0 60rpx rgba(44, 242, 255, 0.16),
+    0 28rpx 70rpx rgba(0, 0, 0, 0.72),
+    inset 0 1rpx 0 rgba(44, 242, 255, 0.35);
+  overflow: hidden;
+}
+.mask-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; right: 0;
+  height: 2rpx;
+  background-image: linear-gradient(90deg, rgba(44, 242, 255, 0) 0%, var(--cyan) 30%, var(--magenta) 70%, rgba(255, 45, 122, 0) 100%);
+  box-shadow: 0 0 16rpx rgba(44, 242, 255, 0.8);
 }
 .mask-title {
   font-size: 38rpx;
-  font-weight: 600;
-  color: var(--gold);
+  font-weight: 800;
+  color: var(--ink);
   text-align: center;
-  letter-spacing: 3rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
-  margin-bottom: 22rpx;
+  letter-spacing: 4rpx;
+  margin-bottom: 24rpx;
+  text-shadow: 0 0 24rpx rgba(44, 242, 255, 0.55);
 }
 
 /* ---------- 大字模式 ---------- */
-.large-font .card-rank { font-size: 44rpx !important; }
+.large-font .card-rank { font-size: 46rpx !important; }
 .large-font .card-suit { font-size: 32rpx !important; }
-.large-font .card-mark { font-size: 74rpx !important; }
 .large-font .rule-p { font-size: 32rpx !important; }
 .large-font .panel-title { font-size: 34rpx !important; }
 .large-font .setting-name { font-size: 32rpx !important; }
 .large-font .setting-desc { font-size: 26rpx !important; }
 .large-font .stat-num { font-size: 46rpx !important; }
 .large-font .list-main { font-size: 30rpx !important; }
-.large-font .result-title { font-size: 48rpx !important; }
+.large-font .result-title { font-size: 50rpx !important; }
 .large-font .score-name { font-size: 32rpx !important; }
 .large-font .status-line { font-size: 30rpx !important; }
 .large-font .nav-label { font-size: 28rpx !important; }

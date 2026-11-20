@@ -1,127 +1,307 @@
-.game-page { padding: 0; position: relative; overflow: hidden; }
-.fx-canvas { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; }
+/* [FIX 2026-11-19] 去掉 overflow:hidden。它在这条链路上只做了一件事：
+   一旦高度计算异常（父级 min-height 失效、flex 计算为 0），整页会被裁成一条线，
+   表现就是"进对局什么都没有"。把它去掉，最坏情况也只是页面变长可以滚。 */
+.game-page { padding: 0; position: relative; }
+
+/* ---------- 霓虹夜空（纯 CSS，不用 canvas） ----------
+   原来这块是一张 100vw×100vh 的原生 canvas。canvas 是原生组件，
+   层级不完全受 z-index 控制，跨基础库表现不一致；换成渐变层后渲染路径完全确定，
+   观感几乎一致（顶部洋红雾 + 底部青光 + 几个缓慢上浮的光尘）。 */
+.sky {
+  position: absolute; left: 0; top: 0; right: 0; bottom: 0;
+  z-index: 0; pointer-events: none; overflow: hidden;
+  background-color: #04060C;
+  background-image:
+    radial-gradient(96% 46% at 52% -8%, rgba(255, 45, 122, 0.28) 0%, rgba(255, 45, 122, 0.06) 46%, rgba(0, 0, 0, 0) 74%),
+    radial-gradient(70% 34% at 50% 104%, rgba(44, 242, 255, 0.16) 0%, rgba(44, 242, 255, 0) 70%),
+    linear-gradient(180deg, #160A1E 0%, #0A0D1E 32%, #05070F 68%, #03050A 100%);
+}
+.sky-glow { position: absolute; border-radius: 50%; }
+.sky-glow.g1 {
+  left: -18%; top: 8%;
+  width: 62vw; height: 62vw;
+  background-image: radial-gradient(circle, rgba(44, 242, 255, 0.16) 0%, rgba(44, 242, 255, 0) 66%);
+}
+.sky-glow.g2 {
+  right: -24%; top: 46%;
+  width: 70vw; height: 70vw;
+  background-image: radial-gradient(circle, rgba(255, 45, 122, 0.14) 0%, rgba(255, 45, 122, 0) 66%);
+}
+.mote {
+  position: absolute;
+  width: 6rpx; height: 6rpx;
+  border-radius: 50%;
+  background-color: var(--cyan);
+  box-shadow: 0 0 16rpx 4rpx rgba(44, 242, 255, 0.45);
+  opacity: 0.5;
+  animation: moteFloat 14s ease-in-out infinite;
+}
+.mote.m1 { left: 14%; top: 62%; animation-delay: 0s; }
+.mote.m2 { left: 72%; top: 38%; width: 5rpx; height: 5rpx;
+  background-color: var(--magenta); box-shadow: 0 0 18rpx 5rpx rgba(255, 45, 122, 0.42); animation-delay: -4s; }
+.mote.m3 { left: 46%; top: 82%; width: 4rpx; height: 4rpx; opacity: 0.38; animation-delay: -8s; }
+.mote.m4 { left: 86%; top: 72%; width: 5rpx; height: 5rpx; opacity: 0.42; animation-delay: -11s; }
+@keyframes moteFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.28; }
+  50% { transform: translate3d(10rpx, -34rpx, 0); opacity: 0.62; }
+}
+
 .game-content {
   position: relative; z-index: 1;
-  padding: 16rpx 20rpx calc(28rpx + env(safe-area-inset-bottom));
+  padding: 14rpx 20rpx calc(26rpx + env(safe-area-inset-bottom));
   min-height: 100vh; box-sizing: border-box;
   display: flex; flex-direction: column;
 }
 
-/* ---------- 顶部 ---------- */
-.game-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14rpx; padding: 0 4rpx; }
-.head-meta { font-size: 20rpx; color: var(--gold-dim); letter-spacing: 1rpx; }
+/* ---------- 顶部 HUD ---------- */
+.game-head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12rpx; padding: 0 4rpx; }
+.head-left { flex: 1; min-width: 0; }
+.head-meta {
+  display: flex; align-items: center;
+  font-size: 18rpx; color: var(--ink-3); letter-spacing: 2rpx;
+}
+.meta-tick {
+  width: 8rpx; height: 16rpx;
+  margin-right: 10rpx;
+  background: var(--cyan);
+  box-shadow: 0 0 10rpx rgba(44, 242, 255, 0.8);
+}
 .head-round {
-  font-size: 27rpx; color: var(--gold); font-weight: 600; margin-top: 4rpx;
-  letter-spacing: 1rpx;
-  font-family: "Songti SC", "STSong", "SimSun", serif;
-  text-shadow: 0 0 14rpx rgba(235, 203, 132, 0.35);
+  font-size: 28rpx; color: var(--cyan); font-weight: 800; margin-top: 6rpx;
+  letter-spacing: 2rpx;
+  text-shadow: 0 0 18rpx rgba(44, 242, 255, 0.5);
 }
-.head-actions { display: flex; gap: 12rpx; }
+.head-actions { display: flex; gap: 10rpx; }
+/* [FIX 2026-11-19] 牌桌实时倍率徽标：洋红描边 + 数字放大，和青色牌桌形成对比，
+   炸弹一落地就能被看见；翻倍瞬间用 multPop 弹一下。 */
+.mult-chip {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  margin: 0 12rpx;
+  padding: 6rpx 14rpx 4rpx;
+  border-radius: 2rpx;
+  border: 1rpx solid rgba(255, 45, 122, 0.55);
+  background-color: rgba(255, 45, 122, 0.10);
+  box-shadow: 0 0 20rpx rgba(255, 45, 122, 0.25);
+}
+.mult-x {
+  font-size: 32rpx; line-height: 1; font-weight: 800;
+  color: var(--magenta);
+  text-shadow: 0 0 16rpx rgba(255, 45, 122, 0.75);
+}
+.mult-t {
+  margin-top: 4rpx;
+  font-size: 16rpx; letter-spacing: 1rpx;
+  color: rgba(255, 255, 255, 0.62);
+}
+.mult-flash { animation: multPop 0.9s ease-out; }
+@keyframes multPop {
+  0% { transform: scale(1); }
+  22% { transform: scale(1.22); }
+  55% { transform: scale(0.97); }
+  100% { transform: scale(1); }
+}
 .ghost-btn {
-  padding: 10rpx 22rpx; border-radius: 999rpx;
-  font-size: 22rpx; color: var(--gold); letter-spacing: 1rpx;
-  border: 1rpx solid rgba(235, 203, 132, 0.34);
-  background: rgba(0, 0, 0, 0.28);
+  padding: 10rpx 22rpx;
+  border-radius: 2rpx;
+  font-size: 21rpx; color: var(--ink-2); letter-spacing: 2rpx;
+  border: 1rpx solid rgba(44, 242, 255, 0.22);
+  background: rgba(4, 8, 16, 0.55);
 }
-.ghost-btn:active { background: rgba(235, 203, 132, 0.14); }
+.ghost-btn:active { color: var(--cyan); border-color: rgba(44, 242, 255, 0.7); background: rgba(44, 242, 255, 0.14); }
 
 /* ---------- 座位 ---------- */
-.seat-row { display: flex; gap: 12rpx; margin-bottom: 14rpx; }
+.seat-row { display: flex; gap: 10rpx; margin-bottom: 12rpx; }
 .seat {
+  position: relative;
   flex: 1; min-width: 0;
   display: flex; flex-direction: column; align-items: center;
   padding: 14rpx 8rpx 12rpx;
-  border-radius: 20rpx;
-  background: rgba(20, 12, 14, 0.55);
-  border: 1rpx solid rgba(235, 203, 132, 0.10);
-  box-shadow: inset 0 1rpx 0 rgba(255, 226, 170, 0.06);
+  border-radius: 4rpx;
+  background: rgba(8, 14, 26, 0.62);
+  border: 1rpx solid rgba(44, 242, 255, 0.10);
+  overflow: hidden;
 }
+/* 轮到谁：顶部一道青色光条 + 外发光，比单纯改边框更快被扫到 */
 .seat.active {
-  border-color: rgba(235, 203, 132, 0.62);
-  background-image: linear-gradient(180deg, rgba(235, 203, 132, 0.14), rgba(235, 203, 132, 0.03));
-  box-shadow: 0 0 26rpx rgba(235, 203, 132, 0.22), inset 0 1rpx 0 rgba(255, 226, 170, 0.16);
+  border-color: rgba(44, 242, 255, 0.55);
+  background-image: linear-gradient(180deg, rgba(44, 242, 255, 0.16) 0%, rgba(8, 14, 26, 0.72) 72%);
+  box-shadow: 0 0 30rpx rgba(44, 242, 255, 0.22), inset 0 1rpx 0 rgba(44, 242, 255, 0.4);
 }
-.seat.danger { border-color: rgba(222, 90, 76, 0.55); }
+.seat.active::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 3rpx;
+  background: linear-gradient(90deg, rgba(44, 242, 255, 0) 0%, var(--cyan) 50%, rgba(44, 242, 255, 0) 100%);
+  box-shadow: 0 0 14rpx rgba(44, 242, 255, 0.9);
+}
+.seat.danger { border-color: rgba(255, 45, 122, 0.55); }
 .seat-avatar {
   position: relative;
   width: 78rpx; height: 78rpx; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  background-image: radial-gradient(circle at 34% 26%, #5C3331 0%, #2C1719 72%);
-  border: 1rpx solid rgba(235, 203, 132, 0.34);
+  background-image: radial-gradient(circle at 34% 26%, #23405C 0%, #0A1220 74%);
+  border: 1rpx solid rgba(44, 242, 255, 0.34);
+  box-shadow: inset 0 0 20rpx rgba(44, 242, 255, 0.16);
 }
-.seat.active .seat-avatar { border-color: var(--gold); box-shadow: 0 0 18rpx rgba(235, 203, 132, 0.55); }
-.seat.danger .seat-avatar { border-color: var(--red-2); animation: dangerPulse 1.3s ease-in-out infinite; }
+.seat.active .seat-avatar { border-color: var(--cyan); box-shadow: 0 0 24rpx rgba(44, 242, 255, 0.65), inset 0 0 20rpx rgba(44, 242, 255, 0.30); }
+.seat.danger .seat-avatar { border-color: var(--magenta); animation: dangerPulse 1.3s ease-in-out infinite; }
 @keyframes dangerPulse {
-  0%, 100% { box-shadow: 0 0 0 rgba(222, 90, 76, 0); }
-  50% { box-shadow: 0 0 22rpx rgba(222, 90, 76, 0.75); }
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 45, 122, 0); }
+  50% { box-shadow: 0 0 26rpx rgba(255, 45, 122, 0.85); }
 }
-.seat-ini { font-size: 32rpx; color: var(--gold); font-family: "Songti SC", "STSong", serif; }
+.seat-ini {
+  font-size: 32rpx; color: var(--ink); font-weight: 700;
+  text-shadow: 0 0 16rpx rgba(44, 242, 255, 0.55);
+}
 .seat-count {
   position: absolute; right: -12rpx; bottom: -8rpx;
-  min-width: 36rpx; height: 36rpx; line-height: 36rpx; padding: 0 6rpx;
-  border-radius: 999rpx; text-align: center;
-  background-image: linear-gradient(180deg, #F0D190, #C79A4E);
-  color: #3A1B12; font-size: 20rpx; font-weight: 800;
-  box-shadow: 0 3rpx 8rpx rgba(0, 0, 0, 0.5);
+  min-width: 38rpx; height: 36rpx; line-height: 36rpx; padding: 0 6rpx;
+  border-radius: 2rpx; text-align: center;
+  background-image: linear-gradient(110deg, #D9FF45, #2CF2FF);
+  color: #04121A; font-size: 20rpx; font-weight: 900;
+  box-shadow: 0 0 16rpx rgba(44, 242, 255, 0.45);
   font-family: "DIN Alternate", "Helvetica Neue", sans-serif;
 }
 .seat-name {
   margin-top: 10rpx; max-width: 100%;
-  font-size: 23rpx; color: var(--ink);
+  font-size: 22rpx; color: var(--ink);
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 .seat-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6rpx; margin-top: 4rpx; }
 .seat-last, .seat-declared, .seat-warn {
-  font-size: 17rpx; padding: 2rpx 8rpx; border-radius: 6rpx; line-height: 1.4;
+  font-size: 16rpx; padding: 2rpx 8rpx; border-radius: 2rpx; line-height: 1.4;
 }
-.seat-last { color: #2A1216; background: rgba(235, 203, 132, 0.85); }
-.seat-declared { color: #FFE1D9; background: rgba(169, 50, 40, 0.75); }
-.seat-warn { color: #FFD9D3; border: 1rpx solid rgba(222, 90, 76, 0.75); }
+.seat-last { color: #04121A; background: var(--cyan); box-shadow: 0 0 12rpx rgba(44, 242, 255, 0.5); }
+.seat-declared { color: #1A0310; background: var(--magenta); box-shadow: 0 0 12rpx rgba(255, 45, 122, 0.5); }
+.seat-warn { color: var(--magenta); border: 1rpx solid rgba(255, 45, 122, 0.7); }
 .seat-line {
   margin-top: 6rpx; max-width: 100%;
-  font-size: 17rpx; color: var(--ink-dim);
-  padding: 2rpx 8rpx; border-radius: 6rpx;
-  background: rgba(235, 203, 132, 0.10);
+  font-size: 16rpx; color: var(--ink-2);
+  padding: 2rpx 8rpx; border-radius: 2rpx;
+  background: rgba(44, 242, 255, 0.08);
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
 }
 
-/* ---------- 出牌区（毡面） ---------- */
+/* ---------- 出牌区：暗场 + 旋转光环 ---------- */
 .table {
   position: relative;
   flex: 1;
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   min-height: 300rpx;
-  padding: 44rpx 18rpx 24rpx;
-  margin-bottom: 12rpx;
-  border-radius: 22rpx;
-  /* 毡面不做成"实心黑盒"：只留一层中心聚光 + 极淡纹理，让背后的夜空与山峦透上来。
-     牌桌的空旷应当是"场地"，不是"没画完的框"。 */
+  padding: 42rpx 18rpx 24rpx;
+  margin-bottom: 10rpx;
+  overflow: hidden;
+  /* 中心一点冷光，边缘压暗：牌浮在光里，桌子像一块正在运转的台面 */
   background-image:
-    radial-gradient(78% 62% at 50% 46%, rgba(235, 203, 132, 0.10) 0%, rgba(235, 203, 132, 0.02) 46%, rgba(0, 0, 0, 0) 74%),
-    radial-gradient(circle at 50% 50%, rgba(235, 203, 132, 0.05) 1rpx, rgba(0, 0, 0, 0) 1rpx);
-  background-size: auto, 22rpx 22rpx;
-  border: none;
-  box-shadow: none;
+    radial-gradient(58% 52% at 50% 48%, rgba(44, 242, 255, 0.13) 0%, rgba(44, 242, 255, 0.03) 44%, rgba(0, 0, 0, 0) 72%),
+    radial-gradient(92% 80% at 50% 50%, rgba(255, 45, 122, 0.05) 0%, rgba(0, 0, 0, 0) 66%);
 }
+/* 四角刻度 + 下扫光带：把空旷的出牌区框成一块"作战屏"，而不是留白 */
+.table-frame {
+  position: absolute;
+  left: 12rpx; right: 12rpx; top: 12rpx; bottom: 12rpx;
+  pointer-events: none;
+  z-index: 1;
+}
+.tf { position: absolute; width: 24rpx; height: 24rpx; }
+.tf.tl { left: 0; top: 0; border-left: 2rpx solid rgba(44, 242, 255, 0.40); border-top: 2rpx solid rgba(44, 242, 255, 0.40); }
+.tf.tr { right: 0; top: 0; border-right: 2rpx solid rgba(255, 45, 122, 0.45); border-top: 2rpx solid rgba(255, 45, 122, 0.45); }
+.tf.bl { left: 0; bottom: 0; border-left: 2rpx solid rgba(44, 242, 255, 0.22); border-bottom: 2rpx solid rgba(44, 242, 255, 0.22); }
+.tf.br { right: 0; bottom: 0; border-right: 2rpx solid rgba(44, 242, 255, 0.22); border-bottom: 2rpx solid rgba(44, 242, 255, 0.22); }
+.table-scan {
+  position: absolute;
+  left: 0; right: 0;
+  height: 120rpx;
+  z-index: 0;
+  pointer-events: none;
+  background-image: linear-gradient(180deg, rgba(44, 242, 255, 0) 0%, rgba(44, 242, 255, 0.055) 50%, rgba(44, 242, 255, 0) 100%);
+  animation: tableScan 7.5s linear infinite;
+}
+@keyframes tableScan {
+  0% { top: -130rpx; }
+  100% { top: 100%; }
+}
+.table-rings { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none; }
+.ring {
+  position: absolute;
+  left: 50%; top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+/* 外环：只有一段亮弧，缓慢旋转 —— 用透明度而非模糊做"光"，低端机也扛得住 */
+.r1 {
+  width: 62vw; height: 62vw;
+  border: 2rpx solid rgba(44, 242, 255, 0.09);
+  border-top-color: rgba(44, 242, 255, 0.85);
+  border-left-color: rgba(44, 242, 255, 0.32);
+  box-shadow: 0 0 26rpx rgba(44, 242, 255, 0.20), inset 0 0 26rpx rgba(44, 242, 255, 0.08);
+  animation: ringSpin 9s linear infinite;
+}
+.r2 {
+  width: 44vw; height: 44vw;
+  border: 2rpx solid rgba(255, 45, 122, 0.07);
+  border-bottom-color: rgba(255, 45, 122, 0.80);
+  border-right-color: rgba(255, 45, 122, 0.26);
+  animation: ringSpin 14s linear infinite reverse;
+}
+.r3 {
+  width: 30vw; height: 30vw;
+  border: 1rpx dashed rgba(44, 242, 255, 0.16);
+  animation: ringSpin 30s linear infinite;
+}
+.table-core {
+  position: absolute; left: 50%; top: 50%;
+  width: 18vw; height: 18vw;
+  margin-left: -9vw; margin-top: -9vw;
+  border-radius: 50%;
+  background-image: radial-gradient(circle, rgba(44, 242, 255, 0.22) 0%, rgba(44, 242, 255, 0.04) 52%, rgba(0, 0, 0, 0) 72%);
+  animation: coreBreath 3.4s ease-in-out infinite;
+}
+@keyframes ringSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes coreBreath {
+  0%, 100% { opacity: 0.55; transform: scale(0.94); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
 .table-label {
-  position: absolute; left: 18rpx; top: 14rpx;
-  display: inline-block;
-  font-size: 20rpx; color: var(--gold-dim); letter-spacing: 1rpx;
-  padding: 3rpx 12rpx; border-radius: 6rpx;
-  background: rgba(0, 0, 0, 0.32); border: 1rpx solid rgba(235, 203, 132, 0.14);
+  position: absolute; left: 14rpx; top: 12rpx;
+  z-index: 2;
+  font-size: 18rpx; color: var(--ink-2); letter-spacing: 2rpx;
+  padding: 3rpx 12rpx;
+  background: rgba(4, 8, 16, 0.6);
+  border-left: 2rpx solid rgba(44, 242, 255, 0.65);
 }
 .table-empty {
-  font-size: 26rpx; color: rgba(200, 178, 150, 0.55); letter-spacing: 10rpx;
-  padding: 24rpx 0 24rpx 10rpx;
-  text-shadow: 0 0 20rpx rgba(235, 203, 132, 0.16);
+  position: relative; z-index: 2;
+  font-size: 26rpx; font-weight: 700;
+  color: rgba(44, 242, 255, 0.55);
+  letter-spacing: 12rpx;
+  padding: 24rpx 0 24rpx 12rpx;
+  text-shadow: 0 0 26rpx rgba(44, 242, 255, 0.55);
+  animation: emptyFlicker 4s ease-in-out infinite;
 }
-.table-cards { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10rpx; width: 100%; }
-.card.played { width: 82rpx; height: 114rpx; border-radius: 10rpx; }
-.card.played .card-rank { font-size: 30rpx; left: 7rpx; top: 5rpx; }
-.card.played .card-suit { font-size: 22rpx; left: 8rpx; top: 40rpx; }
-.card.played .card-mark { font-size: 50rpx; right: 3rpx; bottom: 0; opacity: 0.11; }
+@keyframes emptyFlicker {
+  0%, 100% { opacity: 0.75; }
+  48% { opacity: 1; }
+  52% { opacity: 0.6; }
+}
+.table-cards { position: relative; z-index: 2; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10rpx; width: 100%; }
+.card.played {
+  width: 100rpx; height: 140rpx; border-radius: 8rpx;
+  box-shadow:
+    0 14rpx 30rpx rgba(0, 0, 0, 0.72),
+    0 0 24rpx rgba(44, 242, 255, 0.20),
+    inset 0 0 22rpx rgba(44, 242, 255, 0.16);
+}
+.card.played .card-rank { font-size: 36rpx; left: 8rpx; top: 6rpx; }
+.card.played .card-suit { font-size: 24rpx; left: 9rpx; top: 50rpx; }
 
-@keyframes pulseIn { 0% { transform: scale(0.95); opacity: 0.6; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes pulseIn { 0% { transform: scale(0.96); opacity: 0.6; } 100% { transform: scale(1); opacity: 1; } }
 .table.pulse { animation: pulseIn 240ms ease-out; }
 @keyframes shakeX {
   0%, 100% { transform: translateX(0); }
@@ -132,32 +312,71 @@
 }
 .game-page.shake { animation: shakeX 480ms ease-in-out; }
 
+/* ---------- 炸弹高光横幅 ----------
+   稀有事件要有稀有的样子：不遮全屏、不挡操作（pointer-events: none），
+   只在牌桌中央压一条洋红发光带，1.4s 后由 JS 收起。 */
+.bomb-banner {
+  position: fixed; left: 0; right: 0; top: 42%;
+  z-index: 60;
+  display: flex; flex-direction: column; align-items: center;
+  pointer-events: none;
+  animation: bombIn 260ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+.bomb-line {
+  width: 62%;
+  height: 1rpx;
+  background-color: rgba(255, 45, 122, 0.7);
+}
+.bomb-title {
+  margin: 10rpx 0 4rpx;
+  font-size: 76rpx; line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: 16rpx;
+  text-indent: 16rpx;
+  color: #FF5C97;
+  text-shadow: 0 0 40rpx rgba(255, 45, 122, 0.85), 0 0 12rpx rgba(255, 45, 122, 0.9);
+}
+.bomb-sub {
+  margin-bottom: 10rpx;
+  font-size: 22rpx;
+  letter-spacing: 4rpx;
+  color: var(--cyan);
+  text-shadow: 0 0 18rpx rgba(44, 242, 255, 0.6);
+}
+@keyframes bombIn {
+  0% { opacity: 0; transform: scale(1.35); }
+  60% { opacity: 1; transform: scale(0.98); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 /* ---------- 记牌器 ---------- */
-.counter-scroll { width: 100%; white-space: nowrap; margin-bottom: 10rpx; }
+.counter-scroll { width: 100%; white-space: nowrap; margin-bottom: 8rpx; }
 .counter-row { display: inline-flex; align-items: center; gap: 8rpx; }
-.counter-label { font-size: 19rpx; color: var(--gold-dim); margin-right: 2rpx; letter-spacing: 1rpx; }
+.counter-label { font-size: 18rpx; color: var(--ink-3); margin-right: 2rpx; letter-spacing: 2rpx; }
 .counter-chip {
   display: inline-flex; align-items: baseline; gap: 3rpx;
-  padding: 3rpx 10rpx; border-radius: 8rpx;
-  background: rgba(235, 203, 132, 0.09);
-  border: 1rpx solid rgba(235, 203, 132, 0.10);
+  padding: 3rpx 10rpx; border-radius: 2rpx;
+  background: rgba(44, 242, 255, 0.07);
+  border: 1rpx solid rgba(44, 242, 255, 0.13);
 }
-.counter-rank { font-size: 19rpx; color: var(--gold-dim); }
-.counter-left { font-size: 21rpx; color: var(--ink); font-weight: 600; font-family: "DIN Alternate", sans-serif; }
+.counter-rank { font-size: 17rpx; color: var(--ink-3); margin-right: 5rpx; }
+.counter-sep { font-size: 15rpx; color: var(--ink-3); margin: 0 2rpx; }
+.counter-left { font-size: 21rpx; color: var(--cyan); font-weight: 800; font-family: "DIN Alternate", sans-serif; }
 
 /* ---------- 提示行 ---------- */
 .force-line {
-  font-size: 21rpx; color: #FFD9D3; text-align: center;
+  font-size: 20rpx; color: var(--magenta); text-align: center;
   margin-bottom: 8rpx; letter-spacing: 1rpx;
+  text-shadow: 0 0 16rpx rgba(255, 45, 122, 0.4);
 }
-.declared-line { font-size: 21rpx; color: var(--gold); text-align: center; margin-bottom: 8rpx; }
+.declared-line { font-size: 20rpx; color: var(--cyan); text-align: center; margin-bottom: 8rpx; }
 .status-line {
   min-height: 42rpx; line-height: 42rpx;
-  font-size: 25rpx; color: var(--gold); text-align: center;
-  letter-spacing: 1rpx;
-  margin-bottom: 4rpx;
+  font-size: 24rpx; color: var(--ink); text-align: center;
+  letter-spacing: 2rpx;
+  margin-bottom: 2rpx;
 }
-.pass-reason { font-size: 21rpx; color: var(--red-2); text-align: center; margin-top: 10rpx; }
+.pass-reason { font-size: 20rpx; color: var(--ink-2); text-align: center; margin-top: 10rpx; }
 
 /* ---------- 手牌（叠压） ---------- */
 .hand-zone {
@@ -166,52 +385,77 @@
   padding: 0 2rpx;
 }
 .hand-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 6rpx; }
-.hand-title { font-size: 21rpx; color: var(--gold-dim); letter-spacing: 1rpx; }
-.hand-num { font-size: 20rpx; color: var(--gold-dim); font-family: "DIN Alternate", sans-serif; }
+.hand-title { font-size: 20rpx; color: var(--ink-2); letter-spacing: 2rpx; }
+.hand-num { font-size: 20rpx; color: var(--cyan); font-family: "DIN Alternate", sans-serif; }
 .hand-row {
   display: flex; align-items: flex-end;
-  padding: 26rpx 6rpx 6rpx;
-  min-height: 168rpx;
+  padding: 28rpx 6rpx 4rpx;
+  min-height: 172rpx;
 }
-.hand-card { transition: transform 120ms ease, box-shadow 120ms ease; }
-/* 选中的牌抬起并盖过邻居，即使被压住也一眼看出选了哪张 */
+.hand-card { transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease; }
+/* 选中的牌抬起并盖过邻居：洋红光环 + 上浮，叠得再密也一眼看清 */
 .hand-card.selected {
-  transform: translateY(-26rpx);
-  border-color: rgba(235, 203, 132, 0.95);
-  box-shadow: 0 0 0 3rpx rgba(235, 203, 132, 0.9), 0 18rpx 30rpx rgba(0, 0, 0, 0.55);
+  transform: translateY(-28rpx);
+  border-color: rgba(255, 45, 122, 0.95);
+  box-shadow:
+    0 0 0 3rpx rgba(255, 45, 122, 0.85),
+    0 0 28rpx rgba(255, 45, 122, 0.55),
+    0 20rpx 34rpx rgba(0, 0, 0, 0.62);
 }
 
 /* ---------- 操作 ---------- */
-.action-row { display: flex; align-items: center; gap: 12rpx; margin-top: 8rpx; }
-.act { height: 88rpx; }
-.act-hint { flex: 0 0 148rpx; font-size: 26rpx; letter-spacing: 2rpx; }
-.act-play { flex: 1.5; font-size: 32rpx; letter-spacing: 8rpx; }
+.action-row { display: flex; align-items: center; gap: 10rpx; margin-top: 6rpx; }
+.act { height: 90rpx; }
+.act-hint { flex: 0 0 144rpx; font-size: 25rpx; letter-spacing: 2rpx; }
+.act-play { flex: 1.5; font-size: 33rpx; letter-spacing: 10rpx; }
 .action-row .btn-outline { flex: 1; }
 .act.emph {
-  border-color: var(--gold);
-  color: var(--gold);
-  box-shadow: 0 0 0 2rpx rgba(235, 203, 132, 0.3), 0 8rpx 22rpx rgba(235, 203, 132, 0.18);
+  border-color: var(--magenta);
+  color: var(--magenta);
+  box-shadow: 0 0 0 2rpx rgba(255, 45, 122, 0.30), 0 0 26rpx rgba(255, 45, 122, 0.35);
 }
 
-/* ---------- 引导 ---------- */
-.guide-card .btn { margin-top: 28rpx; }
-.guide-item { display: flex; gap: 14rpx; margin-bottom: 18rpx; }
-.guide-no {
-  width: 34rpx; height: 34rpx; line-height: 34rpx; text-align: center; flex: 0 0 auto;
-  border-radius: 50%;
-  background: rgba(235, 203, 132, 0.16); color: var(--gold); font-size: 20rpx;
-  font-weight: 600;
+/* ---------- 首局引导（内嵌条，不做全屏遮罩） ---------- */
+.guide-bar {
+  position: relative;
+  margin-bottom: 12rpx;
+  padding: 16rpx 18rpx 14rpx;
+  background-image: linear-gradient(160deg, rgba(20, 34, 56, 0.92) 0%, rgba(6, 10, 20, 0.96) 100%);
+  border: 1rpx solid rgba(44, 242, 255, 0.34);
+  border-left: 3rpx solid var(--cyan);
+  border-radius: 4rpx;
+  box-shadow: 0 0 24rpx rgba(44, 242, 255, 0.12);
 }
-.guide-txt { font-size: 24rpx; color: var(--ink); line-height: 1.6; }
+.guide-hd {
+  font-size: 24rpx; font-weight: 800; color: var(--cyan);
+  letter-spacing: 3rpx; margin-bottom: 10rpx;
+}
+.guide-item { display: flex; gap: 12rpx; margin-bottom: 8rpx; }
+.guide-no {
+  width: 30rpx; height: 30rpx; line-height: 30rpx; text-align: center; flex: 0 0 auto;
+  border-radius: 2rpx;
+  background: rgba(44, 242, 255, 0.16);
+  border: 1rpx solid rgba(44, 242, 255, 0.5);
+  color: var(--cyan); font-size: 18rpx; font-weight: 700;
+}
+.guide-txt { font-size: 22rpx; color: var(--ink); line-height: 1.5; flex: 1; }
+.guide-btn {
+  margin-top: 6rpx;
+  text-align: center;
+  font-size: 24rpx; font-weight: 700;
+  letter-spacing: 6rpx;
+  color: var(--acid);
+  padding: 12rpx 0 8rpx;
+  border-top: 1rpx solid rgba(44, 242, 255, 0.14);
+}
 .mask-name {
-  font-size: 40rpx; font-weight: 600; color: var(--ink);
+  font-size: 42rpx; font-weight: 800; color: var(--cyan);
   text-align: center; margin-bottom: 12rpx;
-  font-family: "Songti SC", "STSong", serif;
+  text-shadow: 0 0 24rpx rgba(44, 242, 255, 0.55);
 }
 .mask-card .btn { margin-top: 30rpx; }
 
 /* 15 张以上：牌略窄、点数略小，保证叠压留出的可读宽度够显示点数 */
-.hand-row.dense .card { width: 84rpx; height: 120rpx; }
-.hand-row.dense .card-rank { font-size: 30rpx; left: 6rpx; }
-.hand-row.dense .card-suit { font-size: 22rpx; top: 38rpx; left: 7rpx; }
-.hand-row.dense .card-mark { font-size: 50rpx; }
+.hand-row.dense .card { width: 86rpx; height: 122rpx; }
+.hand-row.dense .card-rank { font-size: 31rpx; left: 6rpx; }
+.hand-row.dense .card-suit { font-size: 22rpx; top: 40rpx; left: 7rpx; }

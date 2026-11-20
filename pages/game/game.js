@@ -5,7 +5,6 @@ var SBM = app.globalData.SBM;
 var engine = SBM.engine;
 var controller = SBM.controller;
 var audio = require('../../utils/audio.js');
-var fx = require('../../utils/fx.js');
 
 var SUIT_TEXT = { S: '♠', H: '♥', C: '♣', D: '♦' };
 var ERROR_TEXT = {
@@ -66,7 +65,8 @@ Page({
 
   onLoad: function (query) {
     this.setData({ largeFont: app.getSettings().largeFont !== false });
-    this.fx = fx.createFX(this, '#fx');
+    // [FIX 2026-11-19] 背景不再用原生 canvas：canvas 是原生组件，层级不受 z-index 完全控制，
+    // 一旦盖住同层内容，页面就是"存在但看不见"。夜空改由 WXML 里的纯 CSS 层绘制。
     this.selected = [];
     this.aiTimer = null;
     // [FIX 2026-11-19] 结算跳转是延迟 500ms 的，页面卸载不会自动清定时器。
@@ -74,6 +74,10 @@ Page({
     this.alive = true;
     this.redirected = false;
     this.redirectTimer = null;
+    this.multTimer = null;
+    this.bombTimer = null;
+    // 上一帧的倍率，用来判断"是不是刚翻倍"，决定要不要闪一下
+    this.lastMultiplier = 1;
     this.audioOn = false;
     this.mode = query.mode || 'AI';
     this.level = query.level || 'NORMAL';
@@ -147,10 +151,11 @@ Page({
     // 续局的热座对局：默认显示交接遮罩，避免上一位玩家手牌直接暴露
     if (this.resuming && this.hotseat) this.setData({ handoff: true, handoffName: game.players[this.activeSeat].name });
 
-    audio.init();
+    // 音频与快照都只是"锦上添花"，任何一步失败都不该阻断首次渲染
+    try { audio.init(); } catch (e) {}
     var st = app.getSettings();
-    if (st.bgm) audio.startBgm(true);
-    audio.vibrate();
+    try { if (st.bgm) audio.startBgm(true); } catch (e) {}
+    try { audio.vibrate(); } catch (e) {}
     this.finished = false;
     // [DESIGN 2026-11-18] 首局引导：只在第一次进牌桌时出现一次，讲清"红桃3先出"与强制规则。
     // 热座续局时已有交接遮罩，不再叠加引导，避免两层蒙版。
@@ -160,7 +165,29 @@ Page({
     // [RELEASE 2026-11-18] 首手自动选中红桃3，省去玩家在 16~24 张牌里找牌；同时立即存快照，
     // 避免"看到手牌但没出牌就退出"时续局入口消失。
     this.autoSelectFirstHand();
-    this.saveSnapshot();
+    try { this.saveSnapshot(); } catch (e) {}
+    // [FIX 2026-11-19] 首次渲染前移到 onLoad 末尾：onShow 若因个别基础库的时序问题没跑到，
+    // 页面就会停在初始的空白 data 上（座位、手牌、状态行全空）。这里先画一次，onShow 再画一次也无害。
+    this.safeRender();
+    // 兜底自检：渲染完仍然没有座位，说明建局这一步没成功（而不是样式问题）。
+    // 直接把原因写在状态行上，玩家和开发者都不用猜。
+    if (!this.data.seats.length) {
+      try {
+        this.setData({ statusText: '开局失败：没有拿到座位数据，请返回首页重进' });
+      } catch (e) {}
+    }
+  },
+
+  // 统一渲染入口：把异常收敛成一行可读的状态提示，而不是让整页静默变空。
+  safeRender: function () {
+    try {
+      this.render();
+      return true;
+    } catch (e) {
+      console.error('[game] render failed', e);
+      try { this.setData({ statusText: '页面加载异常，请返回重进' }); } catch (_) {}
+      return false;
+    }
   },
 
   onGuideClose: function () {
@@ -179,15 +206,14 @@ Page({
     if (h3) this.selected = [h3.id];
   },
 
-  onReady: function () { try { this.fx.mount(); } catch (e) {} },
+  // 背景已改为纯 CSS 层，onReady 不再需要挂载 canvas。
+  onReady: function () {},
 
   onShow: function () {
     var st = app.getSettings();
     if (st.bgm) audio.resume(); else audio.stopBgm();
-    // onHide 会停掉特效帧循环，回前台要显式恢复，否则背景永远定格在切走那一刻
-    if (this.fx) this.fx.start();
     if (this.game) {
-      this.render();
+      this.safeRender();
       // 续局/切后台回来时，若当前轮到 AI，恢复 AI 调度
       if (this.game.status === 'PLAYING') this.scheduleAI();
     }
@@ -196,8 +222,7 @@ Page({
   onHide: function () {
     this.clearAiTimer();
     audio.suspend();
-    this.fx.stop();
-    this.saveSnapshot();
+    try { this.saveSnapshot(); } catch (e) {}
   },
 
   onUnload: function () {
@@ -205,8 +230,9 @@ Page({
     this.alive = false;
     this.clearRedirect();
     this.clearAiTimer();
+    this.clearMultTimer();
+    this.clearBombTimer();
     audio.suspend();
-    this.fx.stop();
     // [RELEASE 2026-11-18] 系统返回键离开牌桌时也保留对局，保证"继续对局"入口可用。
     if (this.game && this.game.status === 'PLAYING') this.saveSnapshot();
   },
@@ -241,6 +267,16 @@ Page({
 
   clearAiTimer: function () {
     if (this.aiTimer) { clearTimeout(this.aiTimer); this.aiTimer = null; }
+  },
+
+  // [FIX 2026-11-19] 倍率闪烁的收尾定时器，切页/重开时必须能取消。
+  clearMultTimer: function () {
+    if (this.multTimer) { clearTimeout(this.multTimer); this.multTimer = null; }
+  },
+
+  // [FIX 2026-11-19] 炸弹高光横幅的收尾定时器，同样不能跨页残留。
+  clearBombTimer: function () {
+    if (this.bombTimer) { clearTimeout(this.bombTimer); this.bombTimer = null; }
   },
 
   // [FIX 2026-11-19] 结算跳转句柄。重开 / 退出 / 卸载都必须能取消它，
@@ -350,10 +386,11 @@ Page({
     }
 
     // [UI 2026-11-19] 手牌叠压：把 N 张牌按可用宽度等分，算出一张牌相对前一张的负边距。
-    // 17 张也能一屏放下（原来每张 92rpx + 8rpx 间隙，一屏只放得下 7 张，找牌要横滑 4 屏）。
+    // 16 张（3 人局满手）也能一屏放下（原来每张 92rpx + 8rpx 间隙，一屏只放得下 7 张，找牌要横滑 4 屏）。
     var hn = hidden ? 0 : hand.length;
     var dense = hn >= 15;
-    var CW = dense ? 84 : 96;
+    // 与 game.wxss 里的 .card / .hand-row.dense .card 宽度严格一致，否则最后一张会挤出屏幕
+    var CW = dense ? 86 : 100;
     var AVAIL = 662;   // 750 - 页面左右 24*2 - 手牌区留白
     var step = hn > 1 ? Math.min(CW + 8, (AVAIL - CW) / (hn - 1)) : CW;
     var handPad = Math.round(step - CW);
@@ -363,6 +400,25 @@ Page({
     // 每日挑战是单局制，显示"第 1/1 局"很怪，直接标成挑战
     var roundText = this.daily ? '每日挑战' : ('第 ' + this.roundIndex + ' / ' + this.roundSize + ' 局' +
       (myTotal ? ' · 累计 ' + (myTotal > 0 ? '+' : '') + myTotal : ''));
+
+    // [FIX 2026-11-19] 牌桌实时倍率。炸弹打出去的那一刻，玩家应该立刻看到"本局翻倍"，
+    // 而不是等到结算页才知道自己刚才那一炸把输赢乘了 2。倍率变化时闪一下，提供即时反馈。
+    var multInfo = engine.computeBombMultiplier(g.playLog, g.config);
+    var multNow = multInfo.multiplier;
+    var multFlash = multNow > (this.lastMultiplier || 1);
+    if (multNow !== this.lastMultiplier) {
+      this.lastMultiplier = multNow;
+      // 只有"变大"才闪；换局回落 ×1 不闪，也不留无用定时器
+      if (multFlash) {
+        this.clearMultTimer();
+        var selfMult = this;
+        this.multTimer = setTimeout(function () {
+          selfMult.multTimer = null;
+          if (!selfMult.alive) return;
+          selfMult.setData({ multFlash: false });
+        }, 900);
+      }
+    }
 
     this.setData({
       gameMeta: (this.daily ? '每日挑战 · ' : '') + (g.players.length + ' 人 · ') + (this.hotseat ? '同屏热座' :
@@ -387,12 +443,15 @@ Page({
       passEmphasis: myTurn && view.canPass && view.legalPlays.length === 0,
       canHint: myTurn && view.legalPlays.length > 0,
       roundText: hidden ? '' : roundText,
+      // 倍率只在真正翻倍时挂出来，×1 不占版面
+      multiplier: multNow,
+      multFlash: multFlash,
       passReason: passReason,
       counter: hidden ? [] : this.buildCounter(view)
     });
 
     if (!hidden && !this.hotseat && view.public.currentSeat === 0 && this.lastSeat !== 0) {
-      audio.prompt('YOUR_TURN');
+      try { audio.prompt('YOUR_TURN'); } catch (e) {}
     }
     this.lastSeat = view.public.currentSeat;
   },
@@ -420,7 +479,7 @@ Page({
     if (!res.ok) { this.explainError(res.error); return; }
     var bomb = !!(res.detected && engine.isBomb(res.detected));
     audio.prompt(bomb ? 'BOMB' : 'PLAY');
-    this.flashPlay(bomb);
+    this.flashPlay(bomb, res.detected);
     this.afterAction(res);
   },
 
@@ -436,15 +495,39 @@ Page({
     wx.showToast({ title: ERROR_TEXT[code] || '出牌失败', icon: 'none' });
   },
 
-  // 出牌反馈：出牌区弹一下；炸弹/天炸全屏震动 + 重触感
-  flashPlay: function (bomb) {
+  // 出牌反馈：出牌区弹一下；炸弹/天炸全屏震动 + 重触感 + 高光横幅
+  // [FIX 2026-11-19] 炸弹是稀有事件（3 人局约 6% 的对局出现），只震一下太轻。
+  // 落地时在牌桌中央压一条高光横幅，把"本局输赢 ×N"直接拍在玩家脸上，
+  // 和头部的倍率徽标形成"瞬时高光 + 持续状态"两层反馈。
+  flashPlay: function (bomb, detected) {
     var self = this;
     this.setData({ playPulse: false });
     setTimeout(function () {
       self.setData({ playPulse: true, shake: !!bomb });
       setTimeout(function () { self.setData({ playPulse: false, shake: false }); }, bomb ? 520 : 260);
     }, 16);
-    if (bomb) audio.vibrate('heavy');
+    if (bomb) {
+      audio.vibrate('heavy');
+      var m = engine.computeBombMultiplier((this.game && this.game.playLog) || [], this.game && this.game.config);
+      var isSky = detected && detected.type === 'BOMB_AAA';
+      // 封顶之后再来炸弹，倍率不会再涨，文案要如实说"已封顶"，不能假装又翻了一档
+      var prevMult = this.lastMultiplier || 1;
+      var bannerText;
+      if (m.multiplier > 1 && m.multiplier > prevMult) bannerText = '本局输赢 ×' + m.multiplier;
+      else if (m.multiplier > 1) bannerText = '本局输赢已封顶 ×' + m.multiplier;
+      else bannerText = '炸弹落地';
+      this.setData({
+        bombBanner: true,
+        bombBannerTitle: isSky ? '天 炸' : '炸 弹',
+        bombBannerText: bannerText
+      });
+      this.clearBombTimer();
+      this.bombTimer = setTimeout(function () {
+        self.bombTimer = null;
+        if (!self.alive) return;
+        self.setData({ bombBanner: false });
+      }, 1400);
+    }
   },
 
   onPass: function () {
@@ -514,6 +597,9 @@ Page({
   onHandoff: function () {
     this.setData({ handoff: false });
     this.selected = [];
+    // [FIX 2026-11-19] 热座首手也要自动选中红桃3：交接后轮到的人往往不知道该先出哪张，
+    // 旧实现只有 onLoad 自动选，热座第一手等于让玩家自己在 16 张里找红桃3。
+    this.autoSelectFirstHand();
     this.render();
     audio.prompt('YOUR_TURN');
   },
@@ -530,16 +616,25 @@ Page({
     var self = this;
     this.aiTimer = setTimeout(function () {
       self.aiTimer = null;
+      if (!self.alive || !self.game || self.game.status !== 'PLAYING') return;
       var res = controller.aiTakeTurn(self.game);
-      if (res.action === 'PASS') {
+      // [FIX 2026-11-19] AI 被引擎拒绝时必须真兜底。旧实现只判 res.action === 'PASS'，
+      // 不看 res.ok——一旦过牌也被拒（如轮到领出），牌局状态不变、定时器再次触发同一座位，
+      // 表现就是"对手永远在思考"，整局静默卡死。现在失败先过牌，过牌也失败就停表并提示。
+      if (!res.ok) {
+        var fallback = controller.pass(self.game, seat);
+        if (!fallback.ok) {
+          console.error('[game] ai stuck', seat, res.error, fallback.error);
+          self.setData({ statusText: '对局卡住了：请点右上角「重开」' });
+          return;
+        }
         self.setLine(seat, 'PASS');
-      } else if (res.ok) {
+      } else if (res.action === 'PASS') {
+        self.setLine(seat, 'PASS');
+      } else {
         var bomb = !!(res.detected && engine.isBomb(res.detected));
         self.setLine(seat, bomb ? 'BOMB' : 'PLAY');
-        self.flashPlay(bomb);
-      } else {
-        controller.pass(self.game, seat);
-        self.setLine(seat, 'PASS');
+        self.flashPlay(bomb, res.detected);
       }
       if (self.game.status === 'FINISHED') { self.finishGame(); return; }
       self.render();
@@ -577,7 +672,7 @@ Page({
       SBM.store.updateStats(won, human.delta);
     }
     audio.prompt(won ? 'YOUR_TURN' : 'PLAY');
-    this.fx.celebrate();
+    try { audio.vibrate(); } catch (e) {}
 
     // [DESIGN 2026-11-18] 一轮多局：把本局 delta 累加进轮次总分，结算页展示"第 N/5 局"与累计榜。
     var totals = {};
@@ -591,7 +686,9 @@ Page({
     // 是哪一局丢的，输了也不知道输在哪。现在把每局自己的得分串起来展示。
     var myDelta = s.scores.filter(function (x) { return x.seat === 0; })[0].delta;
     var history = (this.roundHistory || []).concat([{
-      no: this.roundIndex, delta: myDelta, winnerSeat: g.winnerSeat
+      no: this.roundIndex, delta: myDelta, winnerSeat: g.winnerSeat,
+      // [FIX 2026-11-19] 逐局记下倍率，轮次结束才能标出"哪一局炸过"
+      multiplier: s.multiplier || 1
     }]);
     // [DESIGN 2026-11-19] 下一局交给末位（名次最后）先出，避免先手运气在多局里滚雪球。
     var lastRow = s.scores.slice().sort(function (a, b) { return b.rank - a.rank; })[0];
@@ -647,7 +744,7 @@ Page({
     var prev = null;
     try { prev = wx.getStorageSync('sbm_daily') || null; } catch (e) {}
     // [FIX 2026-11-19] 旧实现"取当天最高分"，而重开沿用固定 seed（实测同一副牌、
-    // 17 张手牌完全一致），等于允许无限试错直到打赢 —— "单局定胜负"直接失效。
+    // 16 张手牌完全一致），等于允许无限试错直到打赢 —— "单局定胜负"直接失效。
     // 现在首次完成即锁定，重开不再写入，挑战的一次性张力才成立。
     if (!prev || prev.date !== rec.date) {
       try { wx.setStorageSync('sbm_daily', rec); } catch (e) {}
@@ -669,6 +766,9 @@ Page({
         self.clearRedirect();
         self.redirected = false;
         self.clearAiTimer();
+        // [FIX 2026-11-19] 重开要收掉上一局可能还在显示的炸弹横幅，否则新局头 1 秒会挂着旧倍率
+        self.clearBombTimer();
+        self.lastMultiplier = 1;
         self.finished = false;
         self.game = self.createGame();
         self.activeSeat = self.game.currentSeat;
@@ -678,7 +778,8 @@ Page({
         // 热座重开同样要交接设备，避免上一位玩家的视线残留
         self.setData({
           handoff: !!self.hotseat,
-          handoffName: self.hotseat ? self.game.players[self.activeSeat].name : ''
+          handoffName: self.hotseat ? self.game.players[self.activeSeat].name : '',
+          bombBanner: false
         });
         self.autoSelectFirstHand();
         self.render();
